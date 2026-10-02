@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 MODEL = os.environ.get("EDITH_MODEL", "qwen3.5:9b-q4_K_M")
-OLLAMA_URL = os.environ.get("OLLAMA_HOST_URL", "http://localhost:11434")
+OLLAMA_URL = os.environ.get("OLLAMA_HOST_URL", "http://127.0.0.1:11434")  # not "localhost": on Windows that costs ~2s per call
 USER_NAME = os.environ.get("EDITH_USER", "boss")
 WAKE_WORDS = ("clock", "hey clock")
 VOICE = os.environ.get("EDITH_VOICE", "en-GB-SoniaNeural")
