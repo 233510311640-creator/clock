@@ -1,0 +1,10 @@
+faster-whisper>=1.0
+sounddevice>=0.4.6
+numpy
+edge-tts>=6.1
+pygame>=2.5
+opencv-python
+mss
+pillow
+psutil
+pystray
