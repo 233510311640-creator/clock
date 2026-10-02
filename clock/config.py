@@ -1,13 +1,38 @@
 import os
 from pathlib import Path
 
-MODEL = os.environ.get("EDITH_MODEL", "qwen3.5:9b-q4_K_M")
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def _load_dotenv(path: Path):
+    """Read KEY=VALUE lines from a .env file into the environment. Real environment variables win."""
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
+
+
+_load_dotenv(ROOT / ".env")
+
+
+def _env(name: str, default=None):
+    """CLOCK_<name>, falling back to the old EDITH_<name>."""
+    return os.environ.get(f"CLOCK_{name}", os.environ.get(f"EDITH_{name}", default))
+
+
+MODEL = _env("MODEL", "qwen3.5:9b-q4_K_M")
 OLLAMA_URL = os.environ.get("OLLAMA_HOST_URL", "http://127.0.0.1:11434")  # not "localhost": on Windows that costs ~2s per call
-USER_NAME = os.environ.get("EDITH_USER", "Snow")  # what she calls you; set EDITH_USER="" for no name
+USER_NAME = _env("USER", "Snow")  # what she calls you; set CLOCK_USER="" for no name
 ADDRESS = f", {USER_NAME}" if USER_NAME else ""  # for spoken lines like "See you{ADDRESS}."
 WAKE_WORDS = ("clock", "hey clock")
-VOICE = os.environ.get("EDITH_VOICE", "en-GB-RyanNeural")
-WHISPER_MODEL = os.environ.get("EDITH_WHISPER", "small.en")
+VOICE = _env("VOICE", "en-GB-RyanNeural")
+WHISPER_MODEL = _env("WHISPER", "small.en")
 SAMPLE_RATE = 16000
 SILENCE_SECONDS = 0.7
 ENERGY_THRESHOLD = 0.015
@@ -17,13 +42,13 @@ MAX_UTTERANCE_SECONDS = 15
 MIC_SILENT_LEVEL = 1e-6
 MIC_SILENT_SECONDS = 15
 # Files tools may read/search
-ALLOWED_DIR = Path(os.environ.get("EDITH_DIR", Path.home() / "Documents")).resolve()
+ALLOWED_DIR = Path(_env("DIR") or Path.home() / "Documents").resolve()
 NOTES_FILE = Path.home() / "edith_notes.txt"
 REMINDERS_FILE = Path.home() / "edith_reminders.json"
 MEMORY_FILE = Path.home() / "edith_memory.json"
-CITY = os.environ.get("EDITH_CITY", "New Delhi")  # default for weather
+CITY = _env("CITY", "New Delhi")  # default for weather
 WEB_TIMEOUT = 10
-CHIME = os.environ.get("EDITH_CHIME", "1") != "0"  # set EDITH_CHIME=0 to turn the wake-word chime off
+CHIME = _env("CHIME", "1") != "0"  # set CLOCK_CHIME=0 to turn the wake-word chime off
 CHIME_VOLUME = 0.2
 
 _ADDRESSING = (f'Address the user as "{USER_NAME}".' if USER_NAME else

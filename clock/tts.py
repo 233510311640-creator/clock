@@ -55,7 +55,7 @@ def speak(text: str):
     if not text:
         return
     print(f"Clock: {text}")
-    path = os.path.join(tempfile.gettempdir(), "edith_tts.mp3")
+    path = os.path.join(tempfile.gettempdir(), "clock_tts.mp3")
     try:
         asyncio.run(edge_tts.Communicate(text, C.VOICE).save(path))
         if not _inited:
@@ -106,7 +106,7 @@ class Speaker:
             path = None
             if not self.mute:
                 try:
-                    fd, path = tempfile.mkstemp(suffix=".mp3", prefix="edith_tts_")
+                    fd, path = tempfile.mkstemp(suffix=".mp3", prefix="clock_tts_")
                     os.close(fd)
                     asyncio.run(edge_tts.Communicate(text, C.VOICE).save(path))
                 except Exception as e:

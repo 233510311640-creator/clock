@@ -1,6 +1,6 @@
 import pytest
 
-from edith import config as C
+from clock import config as C
 
 
 @pytest.fixture(autouse=True)

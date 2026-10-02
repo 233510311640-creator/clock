@@ -1,8 +1,8 @@
 import json
 import urllib.error
 
-from edith import brain
-from edith.brain import _NEEDS_TOOL, _Sentences, explain_error, trim_history
+from clock import brain
+from clock.brain import _NEEDS_TOOL, _Sentences, explain_error, trim_history
 
 
 def test_needs_tool_matches_commands():

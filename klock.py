@@ -36,7 +36,7 @@ def start():
     exe = str(pythonw if pythonw.exists() else sys.executable)
     log = open(LOG_FILE, "a", encoding="utf-8", buffering=1)
     flags = 0x00000008 | 0x08000000  # DETACHED_PROCESS | CREATE_NO_WINDOW
-    proc = subprocess.Popen([exe, "-m", "edith"], cwd=HERE, stdin=subprocess.DEVNULL,
+    proc = subprocess.Popen([exe, "-m", "clock"], cwd=HERE, stdin=subprocess.DEVNULL,
                             stdout=log, stderr=log, creationflags=flags,
                             env={**os.environ, "PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"})
     PID_FILE.write_text(str(proc.pid))

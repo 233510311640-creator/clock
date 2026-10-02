@@ -1,7 +1,7 @@
 import datetime
 
-from edith import memory, reminders
-from edith.__main__ import strip_wake
+from clock import memory, reminders
+from clock.__main__ import strip_wake
 
 
 def test_strip_wake():

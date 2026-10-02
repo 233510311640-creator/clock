@@ -19,8 +19,13 @@ SEE_YOU = re.compile(r"\bsee you,? (clock|klock)\b", re.I)
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--text", action="store_true", help="type instead of speaking (no mic needed)")
+    ap.add_argument("--check", action="store_true", help="check Ollama, mic, voice and audio, then exit")
     ap.add_argument("--mute", action="store_true", help="don't speak replies")
     args = ap.parse_args()
+
+    if args.check:
+        from .check import run
+        raise SystemExit(run())
 
     problem = check_ollama()
     if problem:
