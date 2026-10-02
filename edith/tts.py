@@ -1,6 +1,8 @@
 import asyncio
 import os
+import queue
 import tempfile
+import threading
 import edge_tts
 import pygame
 from . import config as C
@@ -31,3 +33,72 @@ def speak(text: str):
         subprocess.run(["powershell", "-NoProfile", "-Command",
                         f"Add-Type -AssemblyName System.Speech; "
                         f"(New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('{safe}')"])
+
+
+def _sapi(text: str):
+    import subprocess
+    safe = text.replace("'", "''")
+    subprocess.run(["powershell", "-NoProfile", "-Command",
+                    f"Add-Type -AssemblyName System.Speech; "
+                    f"(New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('{safe}')"])
+
+
+class Speaker:
+    """Speaks queued sentences in order, synthesising the next one while the current one plays."""
+
+    def __init__(self, mute=False):
+        self.mute = mute
+        self._text, self._audio = queue.Queue(), queue.Queue()
+        threading.Thread(target=self._synth, daemon=True).start()
+        threading.Thread(target=self._play, daemon=True).start()
+
+    def say(self, text: str):
+        if text and text.strip():
+            self._text.put(text.strip())
+
+    def wait(self):
+        self._text.join()
+        self._audio.join()
+
+    def _synth(self):
+        while True:
+            text = self._text.get()
+            path = None
+            if not self.mute:
+                try:
+                    fd, path = tempfile.mkstemp(suffix=".mp3", prefix="edith_tts_")
+                    os.close(fd)
+                    asyncio.run(edge_tts.Communicate(text, C.VOICE).save(path))
+                except Exception as e:
+                    print(f"(tts fallback: {e})")
+                    path = None
+            self._audio.put((text, path))
+            self._text.task_done()
+
+    def _play(self):
+        global _inited
+        while True:
+            text, path = self._audio.get()
+            print(f"Clock: {text}")
+            try:
+                if not self.mute:
+                    if path:
+                        if not _inited:
+                            pygame.mixer.init()
+                            _inited = True
+                        pygame.mixer.music.load(path)
+                        pygame.mixer.music.play()
+                        while pygame.mixer.music.get_busy():
+                            pygame.time.wait(50)
+                        pygame.mixer.music.unload()
+                    else:
+                        _sapi(text)
+            except Exception as e:
+                print(f"(playback error: {e})")
+            finally:
+                if path:
+                    try:
+                        os.remove(path)
+                    except OSError:
+                        pass
+                self._audio.task_done()

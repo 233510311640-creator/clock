@@ -41,13 +41,14 @@ def main():
 
     from .audio import record_utterance
     from .stt import transcribe
-    from .tts import speak as _speak
+    from .tts import Speaker
     from .tray import Tray
 
-    def _print(t):
-        print(f"Clock: {t}")
+    spk = Speaker(mute=args.mute)
 
-    speak = _print if args.mute else _speak
+    def speak(t):
+        spk.say(t)
+        spk.wait()
 
     def confirm(q):
         speak(q)
@@ -92,10 +93,18 @@ def main():
                 break
             tray.status("thinking")
             t0 = time.perf_counter()
-            answer = brain.ask(cmd)
+            first = []
+
+            def on_sentence(t):
+                if not first:
+                    first.append(time.perf_counter() - t0)
+                    print(f"[first sentence in {first[0]:.1f}s]")
+                    tray.status("speaking")
+                spk.say(t)
+
+            brain.ask(cmd, on_sentence)
             print(f"[thought in {time.perf_counter() - t0:.1f}s]")
-            tray.status("speaking")
-            speak(answer)
+            spk.wait()
     finally:
         tray.stop()
 
