@@ -65,17 +65,17 @@ def main():
         if alive:
             print("(mic signal is back)")
             tray.status("listening")
-            speak(f"I can hear you again, {C.USER_NAME}.")
+            speak(f"I can hear you again{C.ADDRESS}.")
         else:
             print("(mic is silent: muted or blocked)")
             tray.status("mic silent - muted?")
-            speak(f"I can't hear anything, {C.USER_NAME}. Your microphone looks muted or blocked.")
+            speak(f"I can't hear anything{C.ADDRESS}. Your microphone looks muted or blocked.")
     try:
         import numpy as np
         tray.status("loading")
         ensure_mixer()  # so the first chime is instant
         transcribe(np.zeros(C.SAMPLE_RATE, dtype="float32"))  # warm up Whisper so the first command isn't slow
-        speak(f"Clock online. Say my name when you need me, {C.USER_NAME}.")
+        speak(f"Clock online. Say my name when you need me{C.ADDRESS}.")
         reminders.start(speak)
         while True:
             tray.status("listening")
@@ -95,7 +95,7 @@ def main():
             if not heard:
                 continue
             if SEE_YOU.search(heard):
-                speak(f"See you, {C.USER_NAME}.")
+                speak(f"See you{C.ADDRESS}.")
                 break
             cmd = strip_wake(heard)
             if cmd is None:

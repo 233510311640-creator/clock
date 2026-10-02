@@ -3,7 +3,8 @@ from pathlib import Path
 
 MODEL = os.environ.get("EDITH_MODEL", "qwen3.5:9b-q4_K_M")
 OLLAMA_URL = os.environ.get("OLLAMA_HOST_URL", "http://127.0.0.1:11434")  # not "localhost": on Windows that costs ~2s per call
-USER_NAME = os.environ.get("EDITH_USER", "boss")
+USER_NAME = os.environ.get("EDITH_USER", "")  # optional: what she calls you. Empty = no name or title
+ADDRESS = f", {USER_NAME}" if USER_NAME else ""  # for spoken lines like "See you{ADDRESS}."
 WAKE_WORDS = ("clock", "hey clock")
 VOICE = os.environ.get("EDITH_VOICE", "en-GB-RyanNeural")
 WHISPER_MODEL = os.environ.get("EDITH_WHISPER", "small.en")
@@ -25,7 +26,10 @@ WEB_TIMEOUT = 10
 CHIME = os.environ.get("EDITH_CHIME", "1") != "0"  # set EDITH_CHIME=0 to turn the wake-word chime off
 CHIME_VOLUME = 0.2
 
-SYSTEM_PROMPT = f"""You are Clock, a personal AI assistant, addressing the user as "{USER_NAME}".
+_ADDRESSING = (f'Address the user as "{USER_NAME}".' if USER_NAME else
+               'Never address the user by any name, title or nickname (no "boss", "sir", "mate").')
+
+SYSTEM_PROMPT = f"""You are Clock, a personal AI assistant. {_ADDRESSING}
 Your replies are SPOKEN aloud: one to three short sentences, no markdown, no lists, no emojis.
 Tone: calm, dry, quietly witty, efficient. Never end with a follow-up question or offer unless you truly need information.
 
