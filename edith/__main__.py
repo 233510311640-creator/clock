@@ -58,6 +58,16 @@ def main():
     brain = Brain(speak, confirm)
     tray = Tray()
     tray.start()
+
+    def on_mic(alive):
+        if alive:
+            print("(mic signal is back)")
+            tray.status("listening")
+            speak(f"I can hear you again, {C.USER_NAME}.")
+        else:
+            print("(mic is silent: muted or blocked)")
+            tray.status("mic silent - muted?")
+            speak(f"I can't hear anything, {C.USER_NAME}. Your microphone looks muted or blocked.")
     try:
         import numpy as np
         tray.status("loading")
@@ -65,7 +75,13 @@ def main():
         speak(f"Clock online. Say my name when you need me, {C.USER_NAME}.")
         while True:
             tray.status("listening")
-            audio = record_utterance()
+            try:
+                audio = record_utterance(on_mic=on_mic)
+            except Exception as e:  # mic unplugged / device busy
+                print(f"(mic error: {e})")
+                tray.status("mic unavailable")
+                time.sleep(5)
+                continue
             if audio is None:
                 continue
             tray.status("hearing you")

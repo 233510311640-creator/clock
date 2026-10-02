@@ -11,6 +11,9 @@ SAMPLE_RATE = 16000
 SILENCE_SECONDS = 0.7
 ENERGY_THRESHOLD = 0.015
 MAX_UTTERANCE_SECONDS = 15
+# A muted/blocked mic delivers digital silence (exactly 0); a live one always has some noise.
+MIC_SILENT_LEVEL = 1e-6
+MIC_SILENT_SECONDS = 15
 # Files tools may read/search
 ALLOWED_DIR = Path(os.environ.get("EDITH_DIR", Path.home() / "Documents")).resolve()
 NOTES_FILE = Path.home() / "edith_notes.txt"
