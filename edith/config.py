@@ -11,7 +11,8 @@ SAMPLE_RATE = 16000
 SILENCE_SECONDS = 0.7
 ENERGY_THRESHOLD = 0.015
 MAX_UTTERANCE_SECONDS = 15
-# A muted/blocked mic delivers digital silence (exactly 0); a live one always has some noise.
+# Windows-level mute / blocked device gives exact digital silence (seen as 0.000). The HyperX's own
+# mute switch and its noise gate both sit at a flat ~1.5e-5 floor, so those can't be told from a quiet room.
 MIC_SILENT_LEVEL = 1e-6
 MIC_SILENT_SECONDS = 15
 # Files tools may read/search
