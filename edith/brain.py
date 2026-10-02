@@ -22,6 +22,7 @@ def _chat(messages):
         "messages": messages,
         "tools": OLLAMA_TOOLS,
         "stream": False,
+        "keep_alive": "60m",  # keep the model loaded between requests
         "think": False,  # faster replies; she speaks short answers anyway
         "options": {"num_predict": 400, "temperature": 0.6},
     }).encode()

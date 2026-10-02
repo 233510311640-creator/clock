@@ -8,7 +8,7 @@ WAKE_WORDS = ("clock", "hey clock")
 VOICE = os.environ.get("EDITH_VOICE", "en-GB-SoniaNeural")
 WHISPER_MODEL = os.environ.get("EDITH_WHISPER", "small.en")
 SAMPLE_RATE = 16000
-SILENCE_SECONDS = 0.9
+SILENCE_SECONDS = 0.7
 ENERGY_THRESHOLD = 0.015
 MAX_UTTERANCE_SECONDS = 15
 # Files tools may read/search
