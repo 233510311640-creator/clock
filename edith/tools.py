@@ -8,7 +8,7 @@ from pathlib import Path
 import psutil
 
 from . import config as C
-from . import reminders, system_audio, web
+from . import clipboard, memory, reminders, system_audio, web, windows
 
 APPS = {  # allowlist: spoken name -> executable
     "notepad": "notepad.exe", "calculator": "calc.exe", "paint": "mspaint.exe",
@@ -62,6 +62,20 @@ TOOLS = [
      "input_schema": {"type": "object", "properties": {}}},
     {"name": "cancel_reminder", "description": "Cancel a reminder or timer by its id or a word from its text.",
      "input_schema": {"type": "object", "properties": {"match": {"type": "string"}}, "required": ["match"]}},
+    {"name": "remember", "description": "Save a lasting fact about the user (a preference, name, date, habit) to long-term memory.",
+     "input_schema": {"type": "object", "properties": {"fact": {"type": "string"}}, "required": ["fact"]}},
+    {"name": "forget", "description": "Forget remembered facts: give a word or phrase from the fact.",
+     "input_schema": {"type": "object", "properties": {"match": {"type": "string"}}, "required": ["match"]}},
+    {"name": "clipboard", "description": "Read the text the user copied (action read), or put text on the clipboard (action write).",
+     "input_schema": {"type": "object", "properties": {"action": {"type": "string", "enum": ["read", "write"]},
+                                                         "text": {"type": "string"}}, "required": ["action"]}},
+    {"name": "windows", "description": "Control open windows. Actions: list, focus (switch to), minimize, maximize, restore, "
+        "snap_left, snap_right, close (asks to confirm), minimize_all, lock (locks the PC). `target` is part of the window title "
+        "or the app name, such as chrome.",
+     "input_schema": {"type": "object", "properties": {
+         "action": {"type": "string", "enum": ["list", "focus", "minimize", "maximize", "restore", "snap_left",
+                                               "snap_right", "close", "minimize_all", "lock"]},
+         "target": {"type": "string"}}, "required": ["action"]}},
     {"name": "look", "description": "Look at the user's screen or webcam and describe it. "
                                      "Use when asked what you can see / what's on screen / what I'm holding.",
      "input_schema": {"type": "object", "properties": {"source": {"type": "string", "enum": ["screen", "webcam"]}},
@@ -130,6 +144,18 @@ def run_tool(name: str, args: dict, speak, confirm) -> str:
                 return "That time has already passed."
             reminders.add(due, args["text"])
             return f"Reminder set for {reminders.describe(due)}."
+        if name == "remember":
+            return memory.remember(args["fact"])
+        if name == "forget":
+            return memory.forget(args["match"])
+        if name == "clipboard":
+            if args["action"] == "write":
+                clipboard.write(args.get("text", ""))
+                return "Copied to the clipboard."
+            text = clipboard.read()
+            return text[:4000] if text else "The clipboard has no text in it."
+        if name == "windows":
+            return windows.control(args["action"], args.get("target", ""), confirm)
         if name == "list_reminders":
             return reminders.listing()
         if name == "cancel_reminder":

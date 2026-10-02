@@ -4,6 +4,7 @@ import re
 import urllib.request
 
 from . import config as C
+from . import memory
 from .tools import TOOLS, run_tool
 from .vision import capture
 
@@ -47,6 +48,17 @@ def _chat(messages, on_text=None):
     return out
 
 
+# Requests that can only be honoured by calling a tool. If the model answers one of these without
+# calling any tool (a small model sometimes just says "done"), it is made to try again.
+_NEEDS_TOOL = re.compile(
+    r"\b(remind|reminder|don'?t let me forget|remember|forget|copy|copied|clipboard|minimi[sz]e|maximi[sz]e|snap|"
+    r"volume|louder|quieter|timer|weather|temperature|search|look up|google|switch to)\b"
+    # bare action verbs only count as commands at the start of a sentence ("close chrome", not "close by")
+    r"|(?:^|[.?!]\s+)(?:(?:please|can you|could you|will you)\s+)*(close|lock|open|cancel|pause|resume|mute|unmute)\b",
+    re.I)
+_NUDGE = ("You answered without calling a tool, so nothing was done. Call the right tool now, "
+          "then reply briefly based on its result.")
+
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 
 
@@ -80,13 +92,18 @@ class Brain:
         sentences = _Sentences(on_sentence) if on_sentence else None
         self.history.append({"role": "user", "content": text})
         reply = {"content": ""}
+        # Requests that need a tool are not streamed: if the model answers one without calling a tool
+        # ("done!"), the claim must be caught before it is spoken.
+        guarded = bool(_NEEDS_TOOL.search(text))
+        stream = sentences.feed if sentences and not guarded else None
+        used_tool, extra = False, []
         for _ in range(6):  # tool-use loop
             try:
                 now = datetime.datetime.now().strftime("%A %d %B %Y, %I:%M %p")
-                system = f"{C.SYSTEM_PROMPT}\nCurrent local date and time: {now}."
-                reply = _chat([{"role": "system", "content": system}] + self.history,
-                              sentences.feed if sentences else None)
-                if sentences:
+                # memory goes before the date so the always-changing date stays the last part of the prompt
+                system = f"{C.SYSTEM_PROMPT}{memory.prompt_block()}\nCurrent local date and time: {now}."
+                reply = _chat([{"role": "system", "content": system}] + self.history + extra, stream)
+                if sentences and not guarded:
                     sentences.flush()
             except Exception as e:
                 self.history.pop()
@@ -94,10 +111,18 @@ class Brain:
                 if on_sentence:
                     on_sentence(msg)
                 return msg
-            self.history.append(reply)
             calls = reply.get("tool_calls") or []
+            if not calls and guarded and not used_tool and not extra:
+                extra = [reply, {"role": "user", "content": _NUDGE}]  # retry once; the false claim never enters history
+                continue
+            extra = []
+            self.history.append(reply)
             if not calls:
+                if sentences and guarded:
+                    sentences.feed((reply.get("content") or "") + " ")
+                    sentences.flush()
                 break
+            used_tool = True
             images = []
             for call in calls:
                 fn = call["function"]

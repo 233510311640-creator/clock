@@ -16,6 +16,9 @@ Say "Clock, goodbye" to quit.
 - **Answer questions from the web** (`web_search`, `read_webpage`) and give the **weather** (default city: `EDITH_CITY`, or any city you name).
 - **Volume and media**: "turn it down", "set volume to 40", "mute", "pause", "next song".
 - **Reminders and timers** that survive restarts: "remind me tomorrow at 8 to submit the assignment", "what reminders do I have", "cancel the stretch reminder". Anything that came due while she was off is announced when she starts.
+- **Memory**: "remember my sister's birthday is 14 March", "forget the tea thing". Facts live in `~/edith_memory.json` and she sees them on every turn.
+- **Clipboard**: "summarise what I copied", "copy 'see you at five'".
+- **Windows**: "switch to Brave", "minimize Discord", "snap Notepad left", "close Notepad" (asks first), "minimize everything", "lock the PC".
 - Open/close apps, system info, notes, file search/read, and screen or webcam vision.
 
 ## Running her
