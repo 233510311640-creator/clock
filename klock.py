@@ -1,6 +1,6 @@
 """Control the Clock assistant: start it in the background, stop it, check on it.
 
-    python klock.py start | stop | status | log
+    python klock.py start | stop | status | log | mic
 """
 import os
 import subprocess
