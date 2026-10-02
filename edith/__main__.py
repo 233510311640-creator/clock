@@ -3,6 +3,7 @@ import re
 import time
 
 from . import config as C
+from . import reminders
 from .brain import Brain
 
 
@@ -29,6 +30,7 @@ def main():
             return input(f"{q} (y/n) ").strip().lower().startswith("y")
 
         brain = Brain(speak, confirm)
+        reminders.start(speak)
         print("Clock online (text mode). Ctrl+C to quit.")
         while True:
             try:
@@ -73,6 +75,7 @@ def main():
         tray.status("loading")
         transcribe(np.zeros(C.SAMPLE_RATE, dtype="float32"))  # warm up Whisper so the first command isn't slow
         speak(f"Clock online. Say my name when you need me, {C.USER_NAME}.")
+        reminders.start(speak)
         while True:
             tray.status("listening")
             try:

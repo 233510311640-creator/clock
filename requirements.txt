@@ -8,3 +8,5 @@ mss
 pillow
 psutil
 pystray
+pycaw
+comtypes

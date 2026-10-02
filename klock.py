@@ -1,6 +1,8 @@
 """Control the Clock assistant: start it in the background, stop it, check on it.
 
-    python klock.py start | stop | status | log | mic
+    python klock.py start | stop | status | log | mic | install | uninstall
+
+`install` makes Clock start by itself when you log in; `uninstall` turns that off.
 """
 import os
 import subprocess
@@ -21,7 +23,8 @@ def _running_pid():
         return None
     out = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
                          capture_output=True, text=True).stdout
-    return pid if f'"{pid}"' in out else None
+    # after a reboot Windows can hand the old PID to another program, so check it is really Python
+    return pid if f'"{pid}"' in out and "python" in out.lower() else None
 
 
 def start():
@@ -54,6 +57,7 @@ def stop():
 def status():
     pid = _running_pid()
     print(f"Clock is running (PID {pid})." if pid else "Clock is not running.")
+    print("Starts at login: " + ("yes" if STARTUP_LINK.exists() else "no (python klock.py install)"))
 
 
 def log():
@@ -61,6 +65,34 @@ def log():
         print("No log yet.")
         return
     print("".join(LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines(keepends=True)[-30:]))
+
+
+STARTUP_LINK = Path(os.environ.get("APPDATA", "")) / "Microsoft/Windows/Start Menu/Programs/Startup/Clock.lnk"
+
+
+def install():
+    """Put a shortcut in the Startup folder that runs `klock.py start` with no console window."""
+    py = Path(sys.executable)
+    pythonw = py.with_name("pythonw.exe")
+    target = str(pythonw if pythonw.exists() else py)
+    ps = ("$s=(New-Object -ComObject WScript.Shell).CreateShortcut('%s');"
+          "$s.TargetPath='%s';$s.Arguments='\"%s\" start';$s.WorkingDirectory='%s';"
+          "$s.WindowStyle=7;$s.Description='Start Clock voice assistant';$s.Save()"
+          % (STARTUP_LINK, target, HERE / "klock.py", HERE))
+    STARTUP_LINK.parent.mkdir(parents=True, exist_ok=True)
+    r = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True)
+    if STARTUP_LINK.exists():
+        print(f"Clock will now start when you log in ({STARTUP_LINK.name} in your Startup folder).")
+    else:
+        print("Couldn't create the startup shortcut:", r.stderr.strip())
+
+
+def uninstall():
+    if STARTUP_LINK.exists():
+        STARTUP_LINK.unlink()
+        print("Clock will no longer start at login.")
+    else:
+        print("Clock wasn't set to start at login.")
 
 
 def mic():
@@ -84,4 +116,5 @@ def mic():
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "status"
-    {"start": start, "stop": stop, "status": status, "log": log, "mic": mic}.get(cmd, status)()
+    {"start": start, "stop": stop, "status": status, "log": log, "mic": mic,
+     "install": install, "uninstall": uninstall}.get(cmd, status)()
