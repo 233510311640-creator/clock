@@ -84,3 +84,37 @@ def test_check_ollama(monkeypatch):
     def boom(*a, **k): raise urllib.error.URLError(ConnectionRefusedError())
     monkeypatch.setattr(brain.urllib.request, "urlopen", boom)
     assert "isn't running" in brain.check_ollama()
+
+
+def _call(name, **args):
+    return {"role": "assistant", "content": "", "tool_calls": [{"function": {"name": name, "arguments": args}}]}
+
+
+def _run(monkeypatch, replies, confirm_answer):
+    """Drive Brain.ask with scripted model replies; return (tools actually run, confirm prompts)."""
+    ran, asked = [], []
+    it = iter(replies)
+    monkeypatch.setattr(brain, "_chat", lambda *a, **k: next(it))
+    monkeypatch.setattr(brain, "run_tool", lambda name, args, *_: ran.append(name) or "ok")
+    b = brain.Brain(lambda t: None, lambda q: asked.append(q) or confirm_answer)
+    b.ask("tell me about it")
+    return ran, asked, b
+
+
+def test_remember_after_web_read_needs_confirmation(monkeypatch):
+    replies = [_call("read_webpage", url="http://x"), _call("remember", fact="evil"), _a("done")]
+    ran, asked, b = _run(monkeypatch, replies, confirm_answer=False)
+    assert ran == ["read_webpage"] and len(asked) == 1
+    assert any(m.get("content") == "User declined." for m in b.history)
+    assert any("<untrusted" in (m.get("content") or "") for m in b.history if m["role"] == "tool")
+
+
+def test_remember_after_web_read_runs_if_confirmed(monkeypatch):
+    replies = [_call("read_webpage", url="http://x"), _call("remember", fact="ok"), _a("done")]
+    ran, asked, _ = _run(monkeypatch, replies, confirm_answer=True)
+    assert ran == ["read_webpage", "remember"] and len(asked) == 1
+
+
+def test_remember_without_untrusted_read_is_not_prompted(monkeypatch):
+    ran, asked, _ = _run(monkeypatch, [_call("remember", fact="x"), _a("done")], confirm_answer=False)
+    assert ran == ["remember"] and asked == []
