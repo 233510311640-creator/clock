@@ -22,6 +22,8 @@ REMINDERS_FILE = Path.home() / "edith_reminders.json"
 MEMORY_FILE = Path.home() / "edith_memory.json"
 CITY = os.environ.get("EDITH_CITY", "New Delhi")  # default for weather
 WEB_TIMEOUT = 10
+CHIME = os.environ.get("EDITH_CHIME", "1") != "0"  # set EDITH_CHIME=0 to turn the wake-word chime off
+CHIME_VOLUME = 0.35
 
 SYSTEM_PROMPT = f"""You are Clock, a personal AI assistant, addressing the user as "{USER_NAME}".
 Your replies are SPOKEN aloud: one to three short sentences, no markdown, no lists, no emojis.

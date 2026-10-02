@@ -9,7 +9,7 @@ Voice assistant: wake word "Clock" -> Whisper STT -> a local Ollama model (tools
     python -m edith --text      # typing mode, no mic
     python -m edith             # voice mode: say "Clock, what time is it?"
 
-Optional env vars: EDITH_USER (what she calls you), EDITH_VOICE, EDITH_WHISPER, EDITH_DIR, EDITH_MODEL.
+Optional env vars: EDITH_CHIME=0 (turn off the wake-word chime), EDITH_USER (what she calls you), EDITH_VOICE, EDITH_WHISPER, EDITH_DIR, EDITH_MODEL.
 Say "Clock, goodbye" to quit.
 
 ## What she can do

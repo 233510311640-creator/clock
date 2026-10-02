@@ -43,7 +43,7 @@ def main():
 
     from .audio import record_utterance
     from .stt import transcribe
-    from .tts import Speaker
+    from .tts import Speaker, chime, ensure_mixer
     from .tray import Tray
 
     spk = Speaker(mute=args.mute)
@@ -73,6 +73,7 @@ def main():
     try:
         import numpy as np
         tray.status("loading")
+        ensure_mixer()  # so the first chime is instant
         transcribe(np.zeros(C.SAMPLE_RATE, dtype="float32"))  # warm up Whisper so the first command isn't slow
         speak(f"Clock online. Say my name when you need me, {C.USER_NAME}.")
         reminders.start(speak)
@@ -99,6 +100,7 @@ def main():
             cmd = strip_wake(heard)
             if cmd is None:
                 continue  # not addressed to Clock
+            chime()  # she heard her name
             if not cmd:
                 tray.status("waiting for your request")
                 speak("Yes?")
