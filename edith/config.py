@@ -3,7 +3,7 @@ from pathlib import Path
 
 MODEL = os.environ.get("EDITH_MODEL", "qwen3.5:9b-q4_K_M")
 OLLAMA_URL = os.environ.get("OLLAMA_HOST_URL", "http://127.0.0.1:11434")  # not "localhost": on Windows that costs ~2s per call
-USER_NAME = os.environ.get("EDITH_USER", "")  # optional: what she calls you. Empty = no name or title
+USER_NAME = os.environ.get("EDITH_USER", "Snow")  # what she calls you; set EDITH_USER="" for no name
 ADDRESS = f", {USER_NAME}" if USER_NAME else ""  # for spoken lines like "See you{ADDRESS}."
 WAKE_WORDS = ("clock", "hey clock")
 VOICE = os.environ.get("EDITH_VOICE", "en-GB-RyanNeural")
