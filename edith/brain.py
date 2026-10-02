@@ -1,6 +1,7 @@
 import datetime
 import json
 import re
+import urllib.error
 import urllib.request
 
 from . import config as C
@@ -16,6 +17,43 @@ OLLAMA_TOOLS = [
      "function": {"name": t["name"], "description": t["description"], "parameters": t["input_schema"]}}
     for t in TOOLS
 ]
+
+
+def check_ollama():
+    """None if Ollama is up and has the model; otherwise a short spoken-friendly problem description."""
+    try:
+        with urllib.request.urlopen(f"{C.OLLAMA_URL}/api/tags", timeout=3) as r:
+            names = {m.get("name") for m in json.load(r).get("models", [])}
+    except Exception as e:
+        return explain_error(e)
+    if C.MODEL not in names and f"{C.MODEL}:latest" not in names:
+        return f"Ollama is running but the model {C.MODEL} isn't installed. Run: ollama pull {C.MODEL}"
+    return None
+
+
+def explain_error(e: Exception) -> str:
+    """Turn an exception from talking to Ollama into something specific."""
+    if isinstance(e, urllib.error.HTTPError):
+        if e.code == 404:
+            return f"Ollama doesn't have the model {C.MODEL}. Run: ollama pull {C.MODEL}"
+        return f"Ollama returned an error, code {e.code}."
+    if isinstance(e, TimeoutError) or "timed out" in str(e):
+        return "Ollama took too long to answer."
+    if isinstance(e, (urllib.error.URLError, ConnectionError)):
+        return "Ollama isn't running. Start it and try again."
+    return f"I can't reach my language model. {type(e).__name__}."
+
+
+def trim_history(history: list, max_msgs: int = 30, max_chars: int = 24000) -> list:
+    """Bound the conversation by message count and total size, always starting at a plain user turn."""
+    def size(m):
+        return len(m.get("content") or "") + sum(len(json.dumps(c)) for c in m.get("tool_calls", []))
+
+    history = history[-max_msgs:]
+    total = sum(size(m) for m in history)
+    while history and (total > max_chars or not (history[0]["role"] == "user" and "images" not in history[0])):
+        total -= size(history.pop(0))
+    return history
 
 
 def _chat(messages, on_text=None):
@@ -107,7 +145,7 @@ class Brain:
                     sentences.flush()
             except Exception as e:
                 self.history.pop()
-                msg = f"I can't reach my language model. {type(e).__name__}."
+                msg = explain_error(e)
                 if on_sentence:
                     on_sentence(msg)
                 return msg
@@ -141,8 +179,5 @@ class Brain:
             if images:
                 self.history.append({"role": "user", "content": "Here is what you captured. Describe it for me.",
                                      "images": images})
-        # keep history bounded, starting at a plain user turn
-        self.history = self.history[-30:]
-        while self.history and not (self.history[0]["role"] == "user" and "images" not in self.history[0]):
-            self.history.pop(0)
+        self.history = trim_history(self.history)
         return (reply.get("content") or "").strip()

@@ -25,3 +25,7 @@ Say "Clock, goodbye" to quit.
     python klock.py start | stop | status | log | mic
     python klock.py install      # start automatically when you log in
     python klock.py uninstall    # turn that off
+
+## Tests
+    pip install -r requirements-dev.txt
+    python -m pytest

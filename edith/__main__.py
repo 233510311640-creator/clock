@@ -4,7 +4,7 @@ import time
 
 from . import config as C
 from . import reminders
-from .brain import Brain
+from .brain import Brain, check_ollama
 
 
 def strip_wake(text: str):
@@ -21,6 +21,10 @@ def main():
     ap.add_argument("--text", action="store_true", help="type instead of speaking (no mic needed)")
     ap.add_argument("--mute", action="store_true", help="don't speak replies")
     args = ap.parse_args()
+
+    problem = check_ollama()
+    if problem:
+        print(f"(warning: {problem})")  # keep going: Ollama may come up later, and ask() reports it per request
 
     if args.text:
         def speak(t):
@@ -75,7 +79,8 @@ def main():
         tray.status("loading")
         ensure_mixer()  # so the first chime is instant
         transcribe(np.zeros(C.SAMPLE_RATE, dtype="float32"))  # warm up Whisper so the first command isn't slow
-        speak(f"Clock online. Say my name when you need me{C.ADDRESS}.")
+        speak(f"Clock online. Say my name when you need me{C.ADDRESS}." if not problem else
+              f"Clock online, but there's a problem{C.ADDRESS}. {problem.split('. Run')[0]}.")
         reminders.start(speak)
         while True:
             tray.status("listening")
