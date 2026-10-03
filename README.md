@@ -10,7 +10,7 @@ Voice assistant: wake word "Clock" -> Whisper STT -> a local Ollama model (tools
     python -m clock --check     # verify Ollama, mic, voice and audio
     python -m clock             # voice mode: say "Clock, what time is it?"
 
-Settings (all optional) go in a `.env` file or the environment; see `.env.example`: `CLOCK_MODEL`, `CLOCK_USER` (what she calls you), `CLOCK_VOICE`, `CLOCK_WHISPER`, `CLOCK_DIR`, `CLOCK_CITY`, `CLOCK_CHIME=0`. The older `EDITH_*` names still work.
+Settings (all optional) go in a `.env` file or the environment; see `.env.example`: `CLOCK_MODEL`, `CLOCK_USER` (what she calls you), `CLOCK_VOICE`, `CLOCK_WHISPER`, `CLOCK_DIR`, `CLOCK_CITY`, `CLOCK_CHIME=0`, `CLOCK_HUD=1` (shows an optional on-screen overlay; off by default, status lives in the tray). The older `EDITH_*` names still work.
 Say "Clock, goodbye" to quit.
 
 ## What she can do
@@ -24,7 +24,13 @@ Say "Clock, goodbye" to quit.
 
 ## Running her
     python klock.py start | stop | status | log | mic
-    python klock.py install      # start automatically when you log in
+
+With the PowerShell profile (`Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1`) you can also type
+`start the klock`, `stop the klock` or `klock status`. An optional HUD (`CLOCK_HUD=1`) in the top-right corner shows what she heard
+and said while she is hearing, thinking or speaking. The wake word accepts common mishearings ("Hey Clark", "Hi click") but only
+after a greeting.
+    python klock.py tray         # tray icon: click to start / pause Clock
+    python klock.py install      # show that tray icon at every login (Clock waits until you start her)
     python klock.py uninstall    # turn that off
 
 ## Tests

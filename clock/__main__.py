@@ -7,13 +7,25 @@ from . import reminders
 from .brain import Brain, check_ollama
 
 
+# What Whisper tends to write when it hears "Clock". Accepted only after a greeting, so a plain
+# "click the button" or "lock the screen" doesn't wake her.
+_MISHEARD = r"clark|clack|click|cluck|clok|klok|clog|glock|flock|cloak|plock|lock|o'?clock"
+_GREETING = r"(?:hey|hi|hello|ok|okay|yo|hay|hiya)"
+_WAKE = re.compile(
+    rf"^\s*(?:{_GREETING}[, ]+)?(?:clock|klock)\b[,.!? ]*(?P<exact>.*)$"
+    rf"|^\s*{_GREETING}[, ]+(?:{_MISHEARD})\b[,.!? ]*(?P<fuzzy>.*)$", re.I)
+
+
 def strip_wake(text: str):
     """Return the command if text starts with a wake word, else None."""
-    m = re.match(r"^\s*((hey|hi|hello|ok|okay)[, ]+)?(clock|klock)\b[,.!? ]*(.*)$", text, re.I)
-    return m.group(4).strip() if m else None
+    m = _WAKE.match(text)
+    if not m:
+        return None
+    rest = m.group("exact") if m.group("exact") is not None else m.group("fuzzy")
+    return rest.strip()
 
 
-SEE_YOU = re.compile(r"\bsee you,? (clock|klock)\b", re.I)
+SEE_YOU = re.compile(r"\bsee you,? (?:clock|klock|clark|clack|cluck|clok|klok)\b", re.I)
 
 
 def main():
@@ -53,11 +65,15 @@ def main():
     from .audio import record_utterance
     from .stt import transcribe
     from .tts import Speaker, chime, ensure_mixer
+    from .hud import Hud
     from .tray import Tray
 
     spk = Speaker(mute=args.mute)
 
+    hud = Hud()
+
     def speak(t):
+        hud.reply(t)
         spk.say(t)
         spk.wait()
 
@@ -69,36 +85,41 @@ def main():
     brain = Brain(speak, confirm)
     tray = Tray()
     tray.start()
+    hud.start()
+
+    def set_status(text):
+        tray.status(text)
+        hud.status(text)
 
     def on_mic(alive):
         if alive:
             print("(mic signal is back)")
-            tray.status("listening")
+            set_status("listening")
             speak(f"I can hear you again{C.ADDRESS}.")
         else:
             print("(mic is silent: muted or blocked)")
-            tray.status("mic silent - muted?")
-            speak(f"I can't hear anything{C.ADDRESS}. Your microphone looks muted or blocked.")
+            set_status("mic silent - muted?")
+            speak(f"I can't hear anything{C.ADDRESS}. Your microphone looks off, muted or blocked. Is the headset on?")
     try:
         import numpy as np
-        tray.status("loading")
+        set_status("loading")
         ensure_mixer()  # so the first chime is instant
         transcribe(np.zeros(C.SAMPLE_RATE, dtype="float32"))  # warm up Whisper so the first command isn't slow
         speak(f"Clock online. Say my name when you need me{C.ADDRESS}." if not problem else
               f"Clock online, but there's a problem{C.ADDRESS}. {problem.split('. Run')[0]}.")
         reminders.start(speak)
         while True:
-            tray.status("listening")
+            set_status("listening")
             try:
                 audio = record_utterance(on_mic=on_mic)
             except Exception as e:  # mic unplugged / device busy
                 print(f"(mic error: {e})")
-                tray.status("mic unavailable")
+                set_status("mic unavailable")
                 time.sleep(5)
                 continue
             if audio is None:
                 continue
-            tray.status("hearing you")
+            set_status("hearing you")
             t0 = time.perf_counter()
             heard = transcribe(audio)
             print(f"[heard in {time.perf_counter() - t0:.1f}s] {heard!r}")
@@ -112,31 +133,35 @@ def main():
                 continue  # not addressed to Clock
             chime()  # she heard her name
             if not cmd:
-                tray.status("waiting for your request")
+                set_status("waiting for your request")
                 speak("Yes?")
                 audio = record_utterance(max_wait=8)
                 cmd = transcribe(audio) if audio is not None else ""
                 if not cmd:
                     continue
             print(f"You: {cmd}")
+            hud.heard(cmd)
             if re.search(r"\b(goodbye|shut down|power off)\b", cmd, re.I):
                 speak("Powering down. Goodnight.")
                 break
-            tray.status("thinking")
+            set_status("thinking")
             t0 = time.perf_counter()
-            first = []
+            first, said = [], []
 
             def on_sentence(t):
                 if not first:
                     first.append(time.perf_counter() - t0)
                     print(f"[first sentence in {first[0]:.1f}s]")
-                    tray.status("speaking")
+                    set_status("speaking")
+                said.append(t)
+                hud.reply(" ".join(said))
                 spk.say(t)
 
             brain.ask(cmd, on_sentence)
             print(f"[thought in {time.perf_counter() - t0:.1f}s]")
             spk.wait()
     finally:
+        hud.stop()
         tray.stop()
 
 

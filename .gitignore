@@ -3,3 +3,5 @@ __pycache__/
 .env
 klock.log
 klock.pid
+klock.status
+klock_tray.pid

@@ -11,6 +11,22 @@ def test_strip_wake():
     assert strip_wake("what a clockwork orange") is None
 
 
+def test_strip_wake_tolerates_mishearings_only_after_a_greeting():
+    assert strip_wake("Hey Clark, what time is it?") == "what time is it?"
+    assert strip_wake("hi click open notepad") == "open notepad"
+    assert strip_wake("Hello, cluck.") == ""
+    assert strip_wake("click the button") is None
+    assert strip_wake("lock the screen") is None
+    assert strip_wake("Clark is here") is None
+
+
+def test_see_you_ends_session_only_for_her_name():
+    from clock.__main__ import SEE_YOU
+    assert SEE_YOU.search("See you Clock")
+    assert SEE_YOU.search("see you, clark")
+    assert not SEE_YOU.search("see you, lock the door")
+
+
 def test_memory_roundtrip_and_dedupe():
     assert memory.remember("Sister's birthday is 14 March") == "Remembered."
     assert memory.remember("sister's birthday is 14 march") == "I already know that."

@@ -38,8 +38,9 @@ SILENCE_SECONDS = 0.7
 ENERGY_THRESHOLD = 0.015
 MAX_UTTERANCE_SECONDS = 15
 # Windows-level mute / blocked device gives exact digital silence (seen as 0.000). The HyperX's own
-# mute switch and its noise gate both sit at a flat ~1.5e-5 floor, so those can't be told from a quiet room.
-MIC_SILENT_LEVEL = 1e-6
+# mute switch, its noise gate, and the headset being off all sit at a flat ~1.5e-5 floor. That is under
+# 1 LSB of 16-bit audio (~3e-5), which a live mic in a quiet room doesn't reach, so 5e-5 catches them.
+MIC_SILENT_LEVEL = 5e-5
 MIC_SILENT_SECONDS = 15
 # Files tools may read/search
 ALLOWED_DIR = Path(_env("DIR") or Path.home() / "Documents").resolve()
@@ -50,6 +51,7 @@ CITY = _env("CITY", "New Delhi")  # default for weather
 WEB_TIMEOUT = 10
 CHIME = _env("CHIME", "1") != "0"  # set CLOCK_CHIME=0 to turn the wake-word chime off
 CHIME_VOLUME = 0.2
+HUD = _env("HUD", "0") == "1"  # on-screen overlay is off by default (status lives in the tray); CLOCK_HUD=1 turns it on
 
 _ADDRESSING = (f'Address the user as "{USER_NAME}".' if USER_NAME else
                'Never address the user by any name, title or nickname (no "boss", "sir", "mate").')

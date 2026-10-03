@@ -6,6 +6,9 @@ HERE = Path(__file__).resolve().parent.parent
 ICON = HERE / "assets" / "klock.png"
 LOG = HERE / "klock.log"
 PID_FILE = HERE / "klock.pid"
+STATUS_FILE = HERE / "klock.status"
+# Set by the tray launcher: it owns the one tray icon and reads her status from STATUS_FILE.
+HEADLESS = os.environ.get("CLOCK_NO_TRAY") == "1"
 
 
 class Tray:
@@ -13,6 +16,8 @@ class Tray:
         self.icon = None
 
     def start(self):
+        if HEADLESS:
+            return
         try:
             import pystray
             from PIL import Image
@@ -28,10 +33,17 @@ class Tray:
             self.icon = None
 
     def status(self, text: str):
+        if HEADLESS:
+            try:
+                STATUS_FILE.write_text(text, encoding="utf-8")
+            except OSError:
+                pass
         if self.icon:
             self.icon.title = f"Clock: {text}"
 
     def stop(self):
+        if HEADLESS:
+            STATUS_FILE.unlink(missing_ok=True)
         if self.icon:
             self.icon.stop()
 

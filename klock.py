@@ -1,8 +1,9 @@
 """Control the Clock assistant: start it in the background, stop it, check on it.
 
-    python klock.py start | stop | status | log | mic | install | uninstall
+    python klock.py start | stop | status | log | mic | tray | install | uninstall
 
-`install` makes Clock start by itself when you log in; `uninstall` turns that off.
+`tray` shows a tray icon where you can start or pause Clock. `install` puts that tray icon in your
+Startup folder so it appears at every login (Clock waits until you start her there); `uninstall` removes it.
 """
 import os
 import subprocess
@@ -11,34 +12,62 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PID_FILE = HERE / "klock.pid"
+TRAY_PID_FILE = HERE / "klock_tray.pid"
 LOG_FILE = HERE / "klock.log"
 
 
-def _running_pid():
-    if not PID_FILE.exists():
+NO_WINDOW = 0x08000000  # CREATE_NO_WINDOW: without it each child process flashes a console from pythonw
+
+
+def _pid_is_python(pid: int) -> bool:
+    """True if `pid` is a live Python process. Uses the Windows API directly so nothing is spawned
+    (the tray launcher polls this every couple of seconds, and a `tasklist` per poll flashes a window)."""
+    import ctypes
+    from ctypes import wintypes
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    k32.OpenProcess.restype = wintypes.HANDLE
+    h = k32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+    if not h:
+        return False
+    try:
+        code = wintypes.DWORD()
+        if not k32.GetExitCodeProcess(h, ctypes.byref(code)) or code.value != 259:  # STILL_ACTIVE
+            return False
+        buf = ctypes.create_unicode_buffer(1024)
+        size = wintypes.DWORD(len(buf))
+        if not k32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(size)):
+            return False
+        # after a reboot Windows can hand the old PID to another program, so check it is really Python
+        return "python" in buf.value.lower()
+    finally:
+        k32.CloseHandle(h)
+
+
+def _running_pid(pid_file=PID_FILE):
+    if not pid_file.exists():
         return None
     try:
-        pid = int(PID_FILE.read_text().strip())
+        pid = int(pid_file.read_text().strip())
     except ValueError:
         return None
-    out = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
-                         capture_output=True, text=True).stdout
-    # after a reboot Windows can hand the old PID to another program, so check it is really Python
-    return pid if f'"{pid}"' in out and "python" in out.lower() else None
+    return pid if _pid_is_python(pid) else None
 
 
-def start():
+def start(headless=False):
+    """headless=True: the tray launcher owns the tray icon, so Clock doesn't make her own."""
     pid = _running_pid()
     if pid:
         print(f"Clock is already running (PID {pid}).")
         return
+    (HERE / "klock.status").unlink(missing_ok=True)
     pythonw = Path(sys.executable).with_name("pythonw.exe")
     exe = str(pythonw if pythonw.exists() else sys.executable)
     log = open(LOG_FILE, "a", encoding="utf-8", buffering=1)
     flags = 0x00000008 | 0x08000000  # DETACHED_PROCESS | CREATE_NO_WINDOW
     proc = subprocess.Popen([exe, "-m", "clock"], cwd=HERE, stdin=subprocess.DEVNULL,
                             stdout=log, stderr=log, creationflags=flags,
-                            env={**os.environ, "PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"})
+                            env={**os.environ, "PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8",
+                                 **({"CLOCK_NO_TRAY": "1"} if headless else {})})
     PID_FILE.write_text(str(proc.pid))
     print(f"Clock starting in the background (PID {proc.pid}). She'll say 'Clock online' when ready.")
 
@@ -49,7 +78,7 @@ def stop():
         print("Clock is not running.")
         PID_FILE.unlink(missing_ok=True)
         return
-    subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True)
+    subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, creationflags=NO_WINDOW)
     PID_FILE.unlink(missing_ok=True)
     print("Clock stopped.")
 
@@ -58,6 +87,19 @@ def status():
     pid = _running_pid()
     print(f"Clock is running (PID {pid})." if pid else "Clock is not running.")
     print("Starts at login: " + ("yes" if STARTUP_LINK.exists() else "no (python klock.py install)"))
+
+
+def tray():
+    """Run the tray launcher (blocks). A second copy exits so you never get two icons."""
+    if _running_pid(TRAY_PID_FILE) not in (None, os.getpid()):
+        print("The Clock tray icon is already running.")
+        return
+    TRAY_PID_FILE.write_text(str(os.getpid()))
+    from clock.launcher import run
+    try:
+        run(lambda: _running_pid() is not None, lambda: start(headless=True), stop)
+    finally:
+        TRAY_PID_FILE.unlink(missing_ok=True)
 
 
 def log():
@@ -71,18 +113,20 @@ STARTUP_LINK = Path(os.environ.get("APPDATA", "")) / "Microsoft/Windows/Start Me
 
 
 def install():
-    """Put a shortcut in the Startup folder that runs `klock.py start` with no console window."""
+    """Put a shortcut in the Startup folder that runs the tray icon (`klock.py tray`) with no console window."""
     py = Path(sys.executable)
     pythonw = py.with_name("pythonw.exe")
     target = str(pythonw if pythonw.exists() else py)
     ps = ("$s=(New-Object -ComObject WScript.Shell).CreateShortcut('%s');"
-          "$s.TargetPath='%s';$s.Arguments='\"%s\" start';$s.WorkingDirectory='%s';"
-          "$s.WindowStyle=7;$s.Description='Start Clock voice assistant';$s.Save()"
+          "$s.TargetPath='%s';$s.Arguments='\"%s\" tray';$s.WorkingDirectory='%s';"
+          "$s.WindowStyle=7;$s.Description='Clock tray icon (start or pause Clock)';$s.Save()"
           % (STARTUP_LINK, target, HERE / "klock.py", HERE))
     STARTUP_LINK.parent.mkdir(parents=True, exist_ok=True)
-    r = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True)
+    r = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True,
+                       creationflags=NO_WINDOW)
     if STARTUP_LINK.exists():
-        print(f"Clock will now start when you log in ({STARTUP_LINK.name} in your Startup folder).")
+        print(f"The Clock tray icon will now appear when you log in ({STARTUP_LINK.name} in your Startup folder).\n"
+              "Click it (or right-click > Start Clock) when you want her listening.")
     else:
         print("Couldn't create the startup shortcut:", r.stderr.strip())
 
@@ -117,4 +161,4 @@ def mic():
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "status"
     {"start": start, "stop": stop, "status": status, "log": log, "mic": mic,
-     "install": install, "uninstall": uninstall}.get(cmd, status)()
+     "tray": tray, "install": install, "uninstall": uninstall}.get(cmd, status)()

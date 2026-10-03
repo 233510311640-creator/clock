@@ -72,7 +72,8 @@ def speak(text: str):
         safe = text.replace("'", "''")
         subprocess.run(["powershell", "-NoProfile", "-Command",
                         f"Add-Type -AssemblyName System.Speech; "
-                        f"(New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('{safe}')"])
+                        f"(New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('{safe}')"],
+                       creationflags=0x08000000)  # CREATE_NO_WINDOW: no console flash
 
 
 def _sapi(text: str):
@@ -80,7 +81,8 @@ def _sapi(text: str):
     safe = text.replace("'", "''")
     subprocess.run(["powershell", "-NoProfile", "-Command",
                     f"Add-Type -AssemblyName System.Speech; "
-                    f"(New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('{safe}')"])
+                    f"(New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('{safe}')"],
+                       creationflags=0x08000000)  # CREATE_NO_WINDOW: no console flash
 
 
 class Speaker:
