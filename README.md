@@ -20,7 +20,7 @@ Say "Clock, goodbye" to quit.
 - **Memory**: "remember my sister's birthday is 14 March", "forget the tea thing". Facts live in `~/edith_memory.json` and she sees them on every turn.
 - **Clipboard**: "summarise what I copied", "copy 'see you at five'".
 - **Windows**: "switch to Brave", "minimize Discord", "snap Notepad left", "close Notepad" (asks first), "minimize everything", "lock the PC".
-- Open/close apps, system info, notes, file search/read, and screen or webcam vision.
+- Open/close apps (incl. Word, Excel, PowerPoint), system info, notes, file search/read, and screen or webcam vision.
 
 ## Running her
     python klock.py start | stop | status | log | mic
@@ -29,9 +29,17 @@ With the PowerShell profile (`Documents\WindowsPowerShell\Microsoft.PowerShell_p
 `start the klock`, `stop the klock` or `klock status`. An optional HUD (`CLOCK_HUD=1`) in the top-right corner shows what she heard
 and said while she is hearing, thinking or speaking. The wake word accepts common mishearings ("Hey Clark", "Hi click") but only
 after a greeting.
-    python klock.py tray         # tray icon: click to start / pause Clock
+    python klock.py wake-test    # live wake-word scores, to tune CLOCK_WAKE_THRESHOLD
+    python klock.py panel        # Control Center window (pywebview + HTML/CSS UI in clock/ui/): glass orb, chat + typing, reminders, settings
+    python klock.py tray         # tray icon: click it to open the panel (menu: Start / Pause)
     python klock.py install      # show that tray icon at every login (Clock waits until you start her)
     python klock.py uninstall    # turn that off
+
+## Wake word
+By default every utterance is transcribed and matched against "hey Clock". With an openWakeWord model
+(`models/hey_clock.onnx`, trained once; see [docs/wake_word_training.md](docs/wake_word_training.md)) a tiny model listens
+instead and Whisper runs only after it fires. `CLOCK_WAKE_ENGINE` = `auto` | `oww` | `whisper`, `CLOCK_WAKE_MODEL`,
+`CLOCK_WAKE_THRESHOLD`, `CLOCK_WAKE_VAD`.
 
 ## Tests
     pip install -r requirements-dev.txt

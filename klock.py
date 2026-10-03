@@ -1,8 +1,8 @@
 """Control the Clock assistant: start it in the background, stop it, check on it.
 
-    python klock.py start | stop | status | log | mic | tray | install | uninstall
+    python klock.py start | stop | status | log | mic | wake-test | panel | tray | install | uninstall
 
-`tray` shows a tray icon where you can start or pause Clock. `install` puts that tray icon in your
+`panel` opens the control window (also what clicking the tray icon does). `tray` shows a tray icon where you can start or pause Clock. `install` puts that tray icon in your
 Startup folder so it appears at every login (Clock waits until you start her there); `uninstall` removes it.
 """
 import os
@@ -13,6 +13,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 PID_FILE = HERE / "klock.pid"
 TRAY_PID_FILE = HERE / "klock_tray.pid"
+PANEL_PID_FILE = HERE / "klock_panel.pid"
 LOG_FILE = HERE / "klock.log"
 
 
@@ -89,6 +90,29 @@ def status():
     print("Starts at login: " + ("yes" if STARTUP_LINK.exists() else "no (python klock.py install)"))
 
 
+def panel():
+    """Open the control window (blocks). A second copy exits so you never get two windows."""
+    if _running_pid(PANEL_PID_FILE) not in (None, os.getpid()):
+        print("The Clock panel is already open.")
+        return
+    PANEL_PID_FILE.write_text(str(os.getpid()))
+    from clock.panel import run
+    try:
+        run(lambda: _running_pid() is not None, lambda: start(headless=True), stop)
+    finally:
+        PANEL_PID_FILE.unlink(missing_ok=True)
+
+
+def open_panel():
+    """Launch the panel as its own windowless process (used by the tray icon)."""
+    if _running_pid(PANEL_PID_FILE):
+        return
+    pythonw = Path(sys.executable).with_name("pythonw.exe")
+    subprocess.Popen([str(pythonw if pythonw.exists() else sys.executable), str(HERE / "klock.py"), "panel"],
+                     cwd=HERE, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                     creationflags=0x00000008 | NO_WINDOW)
+
+
 def tray():
     """Run the tray launcher (blocks). A second copy exits so you never get two icons."""
     if _running_pid(TRAY_PID_FILE) not in (None, os.getpid()):
@@ -97,9 +121,36 @@ def tray():
     TRAY_PID_FILE.write_text(str(os.getpid()))
     from clock.launcher import run
     try:
-        run(lambda: _running_pid() is not None, lambda: start(headless=True), stop)
+        run(lambda: _running_pid() is not None, lambda: start(headless=True), stop, open_panel)
     finally:
         TRAY_PID_FILE.unlink(missing_ok=True)
+
+
+def wake_test():
+    """Show live wake-word scores so you can tune CLOCK_WAKE_THRESHOLD. Say the phrase, then talk normally."""
+    import numpy as np
+    from clock import config as C, wake
+    from clock.audio import Mic
+    models = wake.resolve_models()
+    if not models:
+        print("No wake model. Set CLOCK_WAKE_MODEL (e.g. hey_jarvis) or put models/hey_clock.onnx in place."
+              "\nTraining steps: docs/wake_word_training.md")
+        return
+    gate = wake.WakeGate(models, C.WAKE_THRESHOLD, C.WAKE_VAD)
+    mic = Mic()
+    mic.open()
+    print(f"Listening for {wake.describe()}  (threshold {C.WAKE_THRESHOLD}). Ctrl+C to stop."
+          "\nSay the phrase a few times, then talk normally: the phrase should score above the threshold, "
+          "normal speech should stay well below it.\n(Stop Clock first if she is running: `python klock.py stop`.)")
+    try:
+        while True:
+            score = gate.score((np.clip(mic.get(), -1, 1) * 32767).astype(np.int16))
+            if score >= 0.05:
+                print(f"{score:4.2f} {'#' * int(score * 40):<40} {'<-- WAKE' if score >= C.WAKE_THRESHOLD else ''}")
+    except KeyboardInterrupt:
+        pass
+    finally:
+        mic.close()
 
 
 def log():
@@ -160,5 +211,5 @@ def mic():
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "status"
-    {"start": start, "stop": stop, "status": status, "log": log, "mic": mic,
-     "tray": tray, "install": install, "uninstall": uninstall}.get(cmd, status)()
+    {"start": start, "stop": stop, "status": status, "log": log, "mic": mic, "wake-test": wake_test,
+     "panel": panel, "tray": tray, "install": install, "uninstall": uninstall}.get(cmd, status)()

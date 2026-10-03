@@ -34,7 +34,9 @@ WAKE_WORDS = ("clock", "hey clock")
 VOICE = _env("VOICE", "en-GB-RyanNeural")
 WHISPER_MODEL = _env("WHISPER", "small.en")
 SAMPLE_RATE = 16000
-SILENCE_SECONDS = 0.7
+SILENCE_SECONDS = 1.0  # quiet that ends a normal utterance; short enough to feel snappy, long enough for a breath
+FOLLOWUP_SILENCE = 1.8  # after her "Yes?" or an unfinished sentence: people pause while they think
+PRE_ROLL_SECONDS = 0.25  # audio kept from just before speech is detected, so the first word isn't clipped
 ENERGY_THRESHOLD = 0.015
 MAX_UTTERANCE_SECONDS = 15
 # Windows-level mute / blocked device gives exact digital silence (seen as 0.000). The HyperX's own
@@ -51,6 +53,13 @@ CITY = _env("CITY", "New Delhi")  # default for weather
 WEB_TIMEOUT = 10
 CHIME = _env("CHIME", "1") != "0"  # set CLOCK_CHIME=0 to turn the wake-word chime off
 CHIME_VOLUME = 0.2
+# Wake word. "whisper": every utterance is transcribed and matched against "hey Clock" (works with no extra model,
+# but costs CPU all the time). "oww": a tiny openWakeWord model listens and Whisper only runs after it fires.
+# "auto" (default) uses openWakeWord when a model is configured/available, else Whisper.
+WAKE_ENGINE = _env("WAKE_ENGINE", "auto")
+WAKE_MODEL = _env("WAKE_MODEL", "")  # .onnx path or pretrained name (hey_jarvis, alexa...), comma-separated; default models/hey_clock.onnx
+WAKE_THRESHOLD = float(_env("WAKE_THRESHOLD", "0.5"))  # raise if she wakes by accident, lower if she misses you
+WAKE_VAD = float(_env("WAKE_VAD", "0.5"))  # 0 turns off openWakeWord's built-in voice-activity filter
 HUD = _env("HUD", "0") == "1"  # on-screen overlay is off by default (status lives in the tray); CLOCK_HUD=1 turns it on
 
 _ADDRESSING = (f'Address the user as "{USER_NAME}".' if USER_NAME else

@@ -43,8 +43,17 @@ def _folder():
     return False, f"{C.ALLOWED_DIR} doesn't exist (set CLOCK_DIR)"
 
 
+def _wake():
+    from . import wake
+    models = wake.resolve_models()
+    if C.WAKE_ENGINE == "whisper" or not models:
+        return True, "Whisper phrase match (add models/hey_clock.onnx for openWakeWord; see docs/wake_word_training.md)"
+    gate = wake.load_gate()  # also proves the model file loads
+    return gate is not None, wake.describe() if gate else "model configured but could not be loaded (see message above)"
+
+
 CHECKS = [("Ollama", _ollama), ("Microphone", _mic), ("Speech recognition", _whisper),
-          ("Voice", _voice), ("Audio output", _audio_out), ("Files folder", _folder)]
+          ("Wake word", _wake), ("Voice", _voice), ("Audio output", _audio_out), ("Files folder", _folder)]
 
 
 def run() -> int:

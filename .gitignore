@@ -5,3 +5,10 @@ klock.log
 klock.pid
 klock.status
 klock_tray.pid
+
+klock.convo.jsonl
+klock_panel.pid
+klock.inbox
+klock.taken
+klock.settings.json
+models/*.onnx

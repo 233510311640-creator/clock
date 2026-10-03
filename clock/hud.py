@@ -19,11 +19,10 @@ WIDTH = 360
 class Hud:
     def __init__(self):
         self.q = queue.Queue()
-        self.enabled = C.HUD
+        self.enabled = True  # False only if tkinter can't start
+        self.visible = C.HUD  # the panel's HUD switch; the window itself always exists
 
     def start(self):
-        if not self.enabled:
-            return
         threading.Thread(target=self._run, daemon=True, name="hud").start()
 
     # --- called from the main thread -------------------------------------------------------
@@ -70,6 +69,8 @@ class Hud:
             root.withdraw()
 
         def show():
+            if not self.visible:
+                return
             place()
             root.deiconify()
             root.attributes("-topmost", True)
@@ -77,6 +78,8 @@ class Hud:
         tray_only = [True]
 
         def poll():
+            if not self.visible:
+                hide()
             try:
                 while True:
                     kind, text = self.q.get_nowait()

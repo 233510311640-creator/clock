@@ -1,6 +1,7 @@
 import datetime
 import inspect
 import os
+import shutil
 import subprocess
 import urllib.parse
 import webbrowser
@@ -16,6 +17,7 @@ APPS = {  # allowlist: spoken name -> executable
     "notepad": "notepad.exe", "calculator": "calc.exe", "paint": "mspaint.exe",
     "explorer": "explorer.exe", "task manager": "taskmgr.exe", "settings": "ms-settings:",
     "chrome": "chrome.exe", "edge": "msedge.exe", "vscode": "code", "terminal": "wt.exe",
+    "word": "winword.exe", "excel": "excel.exe", "powerpoint": "powerpnt.exe",
 }
 
 
@@ -66,8 +68,10 @@ def open_app(name: str):
         return f"'{name}' is not in the allowed apps."
     if exe.endswith(":"):
         os.startfile(exe)
-    else:
+    elif shutil.which(exe):
         subprocess.Popen(exe, shell=True)
+    else:
+        os.startfile(exe)  # not on PATH (Office): Windows finds it through its App Paths registry
     return f"Opened {name}."
 
 

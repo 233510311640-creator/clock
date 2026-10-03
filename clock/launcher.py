@@ -12,7 +12,7 @@ from .tray import HERE, LOG, STATUS_FILE
 ICON_ON, ICON_OFF = HERE / "assets" / "klock.png", HERE / "assets" / "klock_stop.png"
 
 
-def run(is_running, start, stop, autostart=False):
+def run(is_running, start, stop, open_panel=None, autostart=False):
     """Show the tray icon. is_running() -> bool, start() / stop() control Clock's process."""
     import pystray
     from PIL import Image
@@ -36,7 +36,9 @@ def run(is_running, start, stop, autostart=False):
         icon.stop()
 
     menu = pystray.Menu(
-        pystray.MenuItem(lambda item: "Pause Clock" if is_running() else "Start Clock", toggle, default=True),
+        pystray.MenuItem("Open panel", lambda: open_panel(), default=True, visible=open_panel is not None),
+        pystray.MenuItem(lambda item: "Pause Clock" if is_running() else "Start Clock", toggle,
+                         default=open_panel is None),
         pystray.MenuItem("Open log", lambda: os.startfile(LOG) if LOG.exists() else None),
         pystray.MenuItem("Quit (stops Clock)", quit_all),
     )
@@ -54,7 +56,7 @@ def run(is_running, start, stop, autostart=False):
             if state != last:  # Windows redraws on every assignment, so only touch the icon on a change
                 last = state
                 icon.icon = on if running else off
-                icon.title = f"Clock: {detail or 'starting'}" if running else "Clock: paused (click to start)"
+                icon.title = f"Clock: {detail or 'starting'}" if running else "Clock: paused"
                 icon.update_menu()
             time.sleep(1.5)
 

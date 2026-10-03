@@ -102,6 +102,10 @@ class Speaker:
         self._text.join()
         self._audio.join()
 
+    def busy(self) -> bool:
+        """True while a sentence is queued, being synthesised or playing."""
+        return self._text.unfinished_tasks > 0 or self._audio.unfinished_tasks > 0
+
     def _synth(self):
         while True:
             text = self._text.get()
