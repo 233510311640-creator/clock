@@ -20,6 +20,7 @@ Say "Clock, goodbye" to quit.
 - **Memory**: "remember my sister's birthday is 14 March", "forget the tea thing". Facts live in `~/edith_memory.json` and she sees them on every turn.
 - **Clipboard**: "summarise what I copied", "copy 'see you at five'".
 - **Windows**: "switch to Brave", "minimize Discord", "snap Notepad left", "close Notepad" (asks first), "minimize everything", "lock the PC".
+- **Audit log**: every tool call is written to `~/clock_audit.jsonl` (time, tool, arguments, risk level, outcome, whether it ran after untrusted text). Ask "what did you just do?" and she reads the last few.
 - Open/close apps (incl. Word, Excel, PowerPoint), system info, notes, file search/read, and screen or webcam vision.
 
 ## Running her

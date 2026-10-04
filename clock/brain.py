@@ -4,6 +4,7 @@ import re
 import urllib.error
 import urllib.request
 
+from . import audit
 from . import config as C
 from . import memory
 from .tools import TOOLS, run_tool
@@ -188,11 +189,14 @@ class Brain:
                         result = "Image captured; it is attached in the next message."
                     except Exception as e:
                         result = f"Capture failed: {e}"
+                    audit.record(name, args, audit.outcome_of(result), result, tainted)
                 elif tainted and (name in GUARDED_AFTER_UNTRUSTED or _clipboard_write(name, args)) and                         not self.confirm(f"That came from something I just read, not from you. "
                                          f"Should I {GUARDED_AFTER_UNTRUSTED.get(name, 'copy that')}?"):
                     result = "User declined."
+                    audit.record(name, args, "blocked", result, tainted)
                 else:
                     result = run_tool(name, args, self.speak, self.confirm)
+                    audit.record(name, args, audit.outcome_of(result), result, tainted)
                     if name in UNTRUSTED_SOURCES and not _clipboard_write(name, args):
                         tainted = True
                         result = mark_untrusted(name, result)

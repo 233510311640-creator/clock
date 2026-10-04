@@ -1,5 +1,6 @@
 import datetime
 import inspect
+import json
 import os
 import shutil
 import subprocess
@@ -96,6 +97,15 @@ def open_url(url: str):
         return "Only http(s) URLs allowed."
     webbrowser.open(url)
     return "Opened."
+
+
+@tool("What Clock did recently: the last tool calls and how each ended. Use when asked what you did or why.")
+def recent_actions(count: int = 5):
+    from . import audit
+    rows = audit.tail(max(1, min(count, 20)))
+    if not rows:
+        return "No actions logged yet."
+    return "\n".join(f"{r['ts']} {r['tool']} {json.dumps(r['args'], ensure_ascii=False)} -> {r['outcome']}" for r in rows)
 
 
 @tool("Search the web and return the top results (titles, snippets, URLs) "

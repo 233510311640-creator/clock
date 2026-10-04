@@ -52,6 +52,7 @@ ALLOWED_DIR = Path(_env("DIR") or Path.home() / "Documents").resolve()
 NOTES_FILE = Path.home() / "edith_notes.txt"
 REMINDERS_FILE = Path.home() / "edith_reminders.json"
 MEMORY_FILE = Path.home() / "edith_memory.json"
+AUDIT_FILE = Path.home() / "clock_audit.jsonl"  # every tool call, one JSON line each (see clock/audit.py)
 CITY = _env("CITY", "New Delhi")  # default for weather
 WEB_TIMEOUT = 10
 CHIME = _env("CHIME", "1") != "0"  # set CLOCK_CHIME=0 to turn the wake-word chime off
