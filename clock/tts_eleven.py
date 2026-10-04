@@ -70,6 +70,15 @@ def _disable(reason: str):
         print(f"(ElevenLabs off for this session: {reason}. Using edge-tts.)")
 
 
+def _why(e: urllib.error.HTTPError) -> str:
+    """ElevenLabs' own explanation for a 401/403 (for example a disabled free tier), clipped. Never contains the key."""
+    try:
+        detail = json.loads(e.read(2000).decode("utf-8", "replace")).get("detail", {})
+        return str(detail.get("message", ""))[:160] if isinstance(detail, dict) else ""
+    except Exception:
+        return ""
+
+
 def _invalid_key(e: urllib.error.HTTPError) -> bool:
     try:
         return "invalid_api_key" in e.read(2000).decode("utf-8", "replace")
@@ -91,7 +100,7 @@ def synthesize(text: str, path: str):
     except urllib.error.HTTPError as e:
         code = e.code
         if code in (401, 403):
-            _disable("the API key was rejected")
+            _disable(_why(e) or "the API key was rejected")
         elif code == 400 and _invalid_key(e):
             _disable("that is not a valid API key (use the secret key that starts with sk_, not the key ID)")
         elif code == 402:

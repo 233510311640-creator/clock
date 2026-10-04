@@ -175,3 +175,14 @@ def test_key_id_instead_of_secret_switches_off_with_clear_reason(monkeypatch, tm
         tts_eleven.synthesize("hi", str(tmp_path / "a.mp3"))
     assert tts_eleven.usable("hi") is False
     assert "sk_" in capsys.readouterr().out
+
+
+def test_401_reason_from_elevenlabs_is_shown(monkeypatch, tmp_path, capsys):
+    body = b'{"detail":{"status":"detected_unusual_activity","message":"Free Tier access has been disabled."}}'
+
+    def fake(req, timeout):
+        raise urllib.error.HTTPError("u", 401, "no", {}, io.BytesIO(body))
+    monkeypatch.setattr(tts_eleven.urllib.request, "urlopen", fake)
+    with pytest.raises(tts_eleven.ElevenError):
+        tts_eleven.synthesize("hi", str(tmp_path / "a.mp3"))
+    assert "Free Tier access has been disabled." in capsys.readouterr().out
