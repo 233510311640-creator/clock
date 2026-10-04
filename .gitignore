@@ -14,3 +14,4 @@ klock.settings.json
 models/*.onnx
 bench_clips/
 tts_out/
+models/kokoro/

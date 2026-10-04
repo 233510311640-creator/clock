@@ -49,6 +49,19 @@ def _eleven():
                   f"account: {tts_eleven.balance()}")
 
 
+def _kokoro():
+    from . import tts_local
+    if C.TTS_ENGINE != "kokoro":
+        return True, "off (CLOCK_TTS is not kokoro)"
+    if not tts_local.installed():
+        return False, "model files missing in " + str(C.KOKORO_DIR) + "; run: python -m clock.tts_local download"
+    try:
+        import kokoro_onnx  # noqa: F401
+    except ImportError:
+        return False, "kokoro-onnx not installed; run: pip install -r requirements-kokoro.txt"
+    return True, f"voice {C.KOKORO_VOICE}, model files found in {C.KOKORO_DIR}"
+
+
 def _audio_out():
     import pygame
     pygame.mixer.init()
@@ -72,7 +85,7 @@ def _wake():
 
 
 CHECKS = [("Ollama", _ollama), ("Microphone", _mic), ("Speech recognition", _whisper),
-          ("Wake word", _wake), ("Voice", _voice), ("ElevenLabs", _eleven), ("Audio output", _audio_out), ("Files folder", _folder)]
+          ("Wake word", _wake), ("Voice", _voice), ("ElevenLabs", _eleven), ("Kokoro voice", _kokoro), ("Audio output", _audio_out), ("Files folder", _folder)]
 
 
 def run() -> int:

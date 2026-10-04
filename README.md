@@ -40,7 +40,7 @@ after a greeting.
     python klock.py uninstall    # turn that off
 
 ## Voice
-`CLOCK_TTS` = `edge` (default, free) | `eleven`. ElevenLabs Eleven v4 is more expressive (audio tags like `[whispers]`) but needs a key and spends
+`CLOCK_TTS` = `edge` (default, free, online) | `kokoro` (free, local, offline; [docs/local_voice.md](docs/local_voice.md)) | `eleven`. ElevenLabs Eleven v4 is more expressive (audio tags like `[whispers]`) but needs a key and spends
 credits: it has a monthly character budget and falls back to edge-tts on any failure. See [docs/elevenlabs.md](docs/elevenlabs.md).
 
 ## Wake word

@@ -107,7 +107,7 @@ def main():
 
     from .audio import Mic, record_utterance, wait_for_wake
     from .stt import transcribe
-    from .tts import Speaker, chime, ensure_mixer, plain
+    from .tts import Speaker, chime, ensure_mixer, plain, warm
     from .hud import Hud
     from . import convo, wake
     from .tray import Tray
@@ -201,6 +201,7 @@ def main():
         import numpy as np
         set_status("loading")
         ensure_mixer()  # so the first chime is instant
+        warm()  # load the local voice (Kokoro) now, if that is the engine
         transcribe(np.zeros(C.SAMPLE_RATE, dtype="float32"))  # warm up Whisper so the first command isn't slow
         speak(f"Clock online. Say my name when you need me{C.ADDRESS}." if not problem else
               f"Clock online, but there's a problem{C.ADDRESS}. {problem.split('. Run')[0]}.")

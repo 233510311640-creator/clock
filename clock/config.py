@@ -32,8 +32,8 @@ USER_NAME = _env("USER", "Snow")  # what she calls you; set CLOCK_USER="" for no
 ADDRESS = f", {USER_NAME}" if USER_NAME else ""  # for spoken lines like "See you{ADDRESS}."
 WAKE_WORDS = ("clock", "hey clock")
 VOICE = _env("VOICE", "en-GB-RyanNeural")
-# Text to speech engine. "edge" (default, free, online) or "eleven" (ElevenLabs v4: more expressive, needs a key and
-# spends credits; falls back to edge when it fails or the budget is used up). See docs/elevenlabs.md.
+# Text to speech engine: "edge" (default, free, online), "kokoro" (free, local, offline; docs/local_voice.md) or
+# "eleven" (ElevenLabs v4: expressive, needs a key and spends credits; docs/elevenlabs.md). Either falls back to edge.
 TTS_ENGINE = _env("TTS", "edge").lower()
 ELEVEN_KEY = (os.environ.get("ELEVENLABS_API_KEY") or _env("ELEVEN_KEY", "")).strip()
 ELEVEN_VOICE = _env("ELEVEN_VOICE", "JBFqnCBsd6RMkjVDRZzb")  # a voice id from your ElevenLabs voice library
@@ -41,6 +41,9 @@ ELEVEN_MODEL = _env("ELEVEN_MODEL", "eleven_v4_turbo")  # eleven_v4 = best quali
 ELEVEN_MAX_CHARS = int(_env("ELEVEN_MAX_CHARS", "400"))  # longer sentences use edge-tts (saves credits)
 ELEVEN_BUDGET = int(_env("ELEVEN_BUDGET", "8000"))  # characters per calendar month; the free plan has 10,000
 ELEVEN_USAGE_FILE = Path.home() / "clock_eleven_usage.json"
+KOKORO_DIR = Path(_env("KOKORO_DIR") or ROOT / "models" / "kokoro")  # kokoro-v1.0.onnx and voices-v1.0.bin
+KOKORO_VOICE = _env("KOKORO_VOICE", "bm_daniel")  # b* = British, a* = American; m = male, f = female (bm_george, bf_emma, am_adam...)
+KOKORO_SPEED = float(_env("KOKORO_SPEED", "1.0"))
 WHISPER_MODEL = _env("WHISPER", "small.en")
 # Speech to text. "auto": Phonon-2 if fermion-research is installed (about 20x faster, same accuracy on our clips), else Whisper.
 # "phonon" tries Phonon first too; "whisper" never loads Phonon. Any Phonon error falls back to Whisper.

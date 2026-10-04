@@ -6,7 +6,7 @@ import threading
 import edge_tts
 import pygame
 from . import config as C
-from . import tts_eleven
+from . import tts_eleven, tts_local
 from .tts_eleven import plain  # noqa: F401  (re-exported for callers)
 
 _inited = False
@@ -52,16 +52,31 @@ def chime():
         print(f"(chime unavailable: {e})")
 
 
-def _synthesize(text: str, path: str):
-    """Write speech for `text` to an mp3 at `path`: ElevenLabs when enabled and usable, else edge-tts.
-    Audio tags like [whispers] only mean something to ElevenLabs, so edge-tts and SAPI get the plain text."""
+def _synthesize(text: str, path: str) -> str:
+    """Write speech for `text` and return the file written. `path` is an mp3 name; Kokoro writes a wav next to it,
+    so use the returned path, not `path`. Order: the chosen engine (ElevenLabs or Kokoro), then edge-tts.
+    Audio tags like [whispers] only mean something to ElevenLabs, so every other engine gets the plain text."""
     if tts_eleven.usable(text):
         try:
             tts_eleven.synthesize(text, path)
-            return
+            return path
         except tts_eleven.ElevenError as e:
             print(f"(ElevenLabs: {e}; using edge-tts for this line)")
+    if tts_local.usable():
+        wav = os.path.splitext(path)[0] + ".wav"
+        try:
+            tts_local.synthesize(plain(text), wav)
+            return wav
+        except tts_local.LocalTtsError as e:
+            print(f"(Kokoro: {e}; using edge-tts for this line)")
     asyncio.run(edge_tts.Communicate(plain(text), C.VOICE).save(path))
+    return path
+
+
+def warm():
+    """Load the local voice at startup so the first reply is not slow. Does nothing for other engines."""
+    if C.TTS_ENGINE == "kokoro":
+        tts_local.warm()
 
 
 def speak(text: str):
@@ -71,7 +86,7 @@ def speak(text: str):
     print(f"Clock: {plain(text)}")
     path = os.path.join(tempfile.gettempdir(), "clock_tts.mp3")
     try:
-        _synthesize(text, path)
+        path = _synthesize(text, path)
         if not _inited:
             pygame.mixer.init()
             _inited = True
@@ -128,7 +143,13 @@ class Speaker:
                 try:
                     fd, path = tempfile.mkstemp(suffix=".mp3", prefix="clock_tts_")
                     os.close(fd)
-                    _synthesize(text, path)
+                    made = _synthesize(text, path)
+                    if made != path:  # Kokoro wrote a wav; drop the unused mp3 placeholder
+                        try:
+                            os.remove(path)
+                        except OSError:
+                            pass
+                        path = made
                 except Exception as e:
                     print(f"(tts fallback: {e})")
                     path = None

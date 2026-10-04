@@ -1,0 +1,2 @@
+# Optional local voice (CLOCK_TTS=kokoro). After installing, run: python -m clock.tts_local download
+kokoro-onnx
