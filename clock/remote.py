@@ -14,6 +14,7 @@ import urllib.error
 import urllib.request
 
 from . import config as C
+from .tts_eleven import plain
 
 API = "https://api.telegram.org"
 MAX_AGE = 120  # seconds; older messages are not run
@@ -111,7 +112,7 @@ class Telegram:
         if text.lower() in ("/start", "/help", "help"):
             return "Send me a request as text, like you would say it. I can't open apps or use the screen from here."
         try:
-            return self.handler(text) or "(no answer)"
+            return plain(self.handler(text) or "") or "(no answer)"
         except Exception as e:
             return f"Something went wrong: {type(e).__name__}."
 

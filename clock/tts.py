@@ -6,6 +6,8 @@ import threading
 import edge_tts
 import pygame
 from . import config as C
+from . import tts_eleven
+from .tts_eleven import plain  # noqa: F401  (re-exported for callers)
 
 _inited = False
 _mixer_lock = threading.Lock()
@@ -50,14 +52,26 @@ def chime():
         print(f"(chime unavailable: {e})")
 
 
+def _synthesize(text: str, path: str):
+    """Write speech for `text` to an mp3 at `path`: ElevenLabs when enabled and usable, else edge-tts.
+    Audio tags like [whispers] only mean something to ElevenLabs, so edge-tts and SAPI get the plain text."""
+    if tts_eleven.usable(text):
+        try:
+            tts_eleven.synthesize(text, path)
+            return
+        except tts_eleven.ElevenError as e:
+            print(f"(ElevenLabs: {e}; using edge-tts for this line)")
+    asyncio.run(edge_tts.Communicate(plain(text), C.VOICE).save(path))
+
+
 def speak(text: str):
     global _inited
     if not text:
         return
-    print(f"Clock: {text}")
+    print(f"Clock: {plain(text)}")
     path = os.path.join(tempfile.gettempdir(), "clock_tts.mp3")
     try:
-        asyncio.run(edge_tts.Communicate(text, C.VOICE).save(path))
+        _synthesize(text, path)
         if not _inited:
             pygame.mixer.init()
             _inited = True
@@ -69,7 +83,7 @@ def speak(text: str):
     except Exception as e:  # offline etc: fall back to Windows SAPI
         print(f"(tts fallback: {e})")
         import subprocess
-        safe = text.replace("'", "''")
+        safe = plain(text).replace("'", "''")
         subprocess.run(["powershell", "-NoProfile", "-Command",
                         f"Add-Type -AssemblyName System.Speech; "
                         f"(New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('{safe}')"],
@@ -78,7 +92,7 @@ def speak(text: str):
 
 def _sapi(text: str):
     import subprocess
-    safe = text.replace("'", "''")
+    safe = plain(text).replace("'", "''")
     subprocess.run(["powershell", "-NoProfile", "-Command",
                     f"Add-Type -AssemblyName System.Speech; "
                     f"(New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('{safe}')"],
@@ -114,7 +128,7 @@ class Speaker:
                 try:
                     fd, path = tempfile.mkstemp(suffix=".mp3", prefix="clock_tts_")
                     os.close(fd)
-                    asyncio.run(edge_tts.Communicate(text, C.VOICE).save(path))
+                    _synthesize(text, path)
                 except Exception as e:
                     print(f"(tts fallback: {e})")
                     path = None
@@ -125,7 +139,7 @@ class Speaker:
         global _inited
         while True:
             text, path = self._audio.get()
-            print(f"Clock: {text}")
+            print(f"Clock: {plain(text)}")
             try:
                 if not self.mute:
                     if path:

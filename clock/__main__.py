@@ -107,7 +107,7 @@ def main():
 
     from .audio import Mic, record_utterance, wait_for_wake
     from .stt import transcribe
-    from .tts import Speaker, chime, ensure_mixer
+    from .tts import Speaker, chime, ensure_mixer, plain
     from .hud import Hud
     from . import convo, wake
     from .tray import Tray
@@ -126,8 +126,8 @@ def main():
         return record_utterance(max_wait=max_wait, silence=silence, mic=mic)
 
     def speak(t):
-        convo.add("clock", t)
-        hud.reply(t)
+        convo.add("clock", plain(t))
+        hud.reply(plain(t))
         spk.say(t)
         spk.wait()
 
@@ -168,7 +168,7 @@ def main():
                     first.append(time.perf_counter() - t0)
                     print(f"[first sentence in {first[0]:.1f}s]")
                     set_status("speaking")
-                said.append(t)
+                said.append(plain(t))
                 hud.reply(" ".join(said))
                 spk.say(t)
 

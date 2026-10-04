@@ -18,6 +18,12 @@ def _mic():
 
 
 def _whisper():
+    if C.STT_ENGINE in ("auto", "phonon"):
+        try:
+            import fermion  # noqa: F401
+            return True, "Phonon-2 (fermion-research installed; Whisper is the fallback)"
+        except ImportError:
+            pass
     import faster_whisper  # noqa: F401  (the model itself downloads on first use)
     return True, f"faster-whisper installed; model {C.WHISPER_MODEL} loads on first run"
 
@@ -28,6 +34,17 @@ def _voice():
     if any(v["ShortName"] == C.VOICE for v in voices):
         return True, f"voice {C.VOICE} exists"
     return False, f"voice {C.VOICE} not found (see `edge-tts --list-voices`)"
+
+
+def _eleven():
+    from . import tts_eleven
+    if C.TTS_ENGINE != "eleven":
+        return True, "off (CLOCK_TTS=edge); edge-tts is the voice"
+    if not C.ELEVEN_KEY:
+        return False, "CLOCK_TTS=eleven but no ELEVENLABS_API_KEY; she will use edge-tts"
+    left = C.ELEVEN_BUDGET - tts_eleven.used()
+    return True, (f"model {C.ELEVEN_MODEL}; {max(left, 0)} of {C.ELEVEN_BUDGET} budgeted characters left this month; "
+                  f"account: {tts_eleven.balance()}")
 
 
 def _audio_out():
@@ -53,7 +70,7 @@ def _wake():
 
 
 CHECKS = [("Ollama", _ollama), ("Microphone", _mic), ("Speech recognition", _whisper),
-          ("Wake word", _wake), ("Voice", _voice), ("Audio output", _audio_out), ("Files folder", _folder)]
+          ("Wake word", _wake), ("Voice", _voice), ("ElevenLabs", _eleven), ("Audio output", _audio_out), ("Files folder", _folder)]
 
 
 def run() -> int:

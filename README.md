@@ -39,6 +39,10 @@ after a greeting.
     python klock.py install      # show that tray icon at every login (Clock waits until you start her)
     python klock.py uninstall    # turn that off
 
+## Voice
+`CLOCK_TTS` = `edge` (default, free) | `eleven`. ElevenLabs Eleven v4 is more expressive (audio tags like `[whispers]`) but needs a key and spends
+credits: it has a monthly character budget and falls back to edge-tts on any failure. See [docs/elevenlabs.md](docs/elevenlabs.md).
+
 ## Wake word
 By default every utterance is transcribed and matched against "hey Clock". With an openWakeWord model
 (`models/hey_clock.onnx`, trained once; see [docs/wake_word_training.md](docs/wake_word_training.md)) a tiny model listens
