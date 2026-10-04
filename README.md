@@ -19,6 +19,7 @@ Say "Clock, goodbye" to quit.
 - **Reminders and timers** that survive restarts: "remind me tomorrow at 8 to submit the assignment", "what reminders do I have", "cancel the stretch reminder". Anything that came due while she was off is announced when she starts.
 - **Routines**: "every weekday at 8 tell me the weather and my reminders", "what routines do I have", "cancel the weather routine". She speaks fixed parts (your line, time, weather, today's reminders) at that time; a routine missed by under 2 hours is spoken late, older ones are skipped. Stored in `~/clock_routines.json`.
 - **Background tasks**: "research the best budget laptops and tell me when you're done". She keeps listening, and announces the result when it's ready (`list tasks`, `cancel task`). A task can only read (web, files, weather); it can't open, save, copy or schedule anything. Up to 2 at once, 5 minutes each, lost on restart.
+- **Phone**: message her from Telegram (private bot, outgoing connections only, your chat id only). The phone can't open apps, use the clipboard or see the screen unless you allow it. Reminders and finished tasks reach your phone too. Setup: [docs/remote_inbox.md](docs/remote_inbox.md).
 - **Memory**: "remember my sister's birthday is 14 March", "forget the tea thing". Facts live in `~/edith_memory.json` and she sees them on every turn.
 - **Clipboard**: "summarise what I copied", "copy 'see you at five'".
 - **Windows**: "switch to Brave", "minimize Discord", "snap Notepad left", "close Notepad" (asks first), "minimize everything", "lock the PC".

@@ -5,7 +5,7 @@ import threading
 import time
 
 from . import config as C
-from . import reminders, routines, settings
+from . import reminders, remote, routines, settings
 from .brain import Brain, check_ollama
 
 
@@ -47,6 +47,28 @@ def join_command(cmd: str, more: str) -> str:
 SEE_YOU = re.compile(r"\bsee you,? (?:clock|klock|clark|clack|cluck|clok|klok)\b", re.I)
 
 
+def start_remote(lock, speak):
+    """Start the phone channel if configured. Returns a speak() that also sends to the phone (for reminders and routines)."""
+    holder = []
+    brain = remote.make_brain(lambda t: holder and holder[0].send(t))
+    channel = remote.from_config(lambda text: _locked_ask(lock, brain, text))
+    if not channel:
+        return speak
+    holder.append(channel)
+    channel.start()
+    print(f"(phone: Telegram on, {len(channel.chats)} chat(s), tools: {'all' if remote.allowed_tools() is None else 'safe'})")
+
+    def announce(t):
+        channel.send(t)
+        speak(t)
+    return announce
+
+
+def _locked_ask(lock, brain, text):
+    with lock:  # one exchange at a time, shared with the spoken and typed ones
+        return brain.ask(text)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--text", action="store_true", help="type instead of speaking (no mic needed)")
@@ -70,8 +92,9 @@ def main():
             return input(f"{q} (y/n) ").strip().lower().startswith("y")
 
         brain = Brain(speak, confirm)
-        reminders.start(speak)
-        routines.start(speak)
+        announce = start_remote(threading.Lock(), speak)
+        reminders.start(announce)
+        routines.start(announce)
         print("Clock online (text mode). Ctrl+C to quit.")
         while True:
             try:
@@ -181,8 +204,9 @@ def main():
         transcribe(np.zeros(C.SAMPLE_RATE, dtype="float32"))  # warm up Whisper so the first command isn't slow
         speak(f"Clock online. Say my name when you need me{C.ADDRESS}." if not problem else
               f"Clock online, but there's a problem{C.ADDRESS}. {problem.split('. Run')[0]}.")
-        reminders.start(speak)
-        routines.start(speak)
+        announce = start_remote(busy, speak)
+        reminders.start(announce)
+        routines.start(announce)
         apply_settings()
         convo.take()  # drop anything typed while she was off
         threading.Thread(target=watch_inbox, daemon=True, name="inbox").start()

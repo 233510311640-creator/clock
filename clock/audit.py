@@ -30,10 +30,10 @@ def _clip(value, limit=200):
     return value
 
 
-def record(name: str, args: dict, outcome: str, result="", tainted: bool = False):
+def record(name: str, args: dict, outcome: str, result="", tainted: bool = False, source: str = "local"):
     """outcome: ok | error | declined | blocked. Never raises: a full disk must not stop Clock."""
     entry = {
-        "ts": datetime.datetime.now().isoformat(timespec="seconds"),
+        "ts": datetime.datetime.now().isoformat(timespec="seconds"), "source": source,
         "tool": name, "risk": risk(name, args), "outcome": outcome, "after_untrusted": tainted,
         "args": {k: _clip(v) for k, v in (args or {}).items()},
         "result": _clip(str(result), 120),

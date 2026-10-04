@@ -65,6 +65,10 @@ WAKE_ENGINE = _env("WAKE_ENGINE", "auto")
 WAKE_MODEL = _env("WAKE_MODEL", "")  # .onnx path or pretrained name (hey_jarvis, alexa...), comma-separated; default models/hey_clock.onnx
 WAKE_THRESHOLD = float(_env("WAKE_THRESHOLD", "0.5"))  # raise if she wakes by accident, lower if she misses you
 WAKE_VAD = float(_env("WAKE_VAD", "0.5"))  # 0 turns off openWakeWord's built-in voice-activity filter
+# Phone access through a private Telegram bot (docs/remote_inbox.md). Off unless token and chat id are both set.
+TELEGRAM_TOKEN = _env("TELEGRAM_TOKEN", "").strip()
+TELEGRAM_CHATS = [int(c) for c in _env("TELEGRAM_CHAT", "").replace(" ", "").split(",") if c.lstrip("-").isdigit()]
+REMOTE_TOOLS = _env("REMOTE_TOOLS", "safe").lower()  # "safe": the phone can't open apps or use clipboard, windows, screen; "all": no limit
 HUD = _env("HUD", "0") == "1"  # on-screen overlay is off by default (status lives in the tray); CLOCK_HUD=1 turns it on
 
 _ADDRESSING = (f'Address the user as "{USER_NAME}".' if USER_NAME else

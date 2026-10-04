@@ -144,6 +144,7 @@ class Brain:
         self.history = []
         self.speak, self.confirm = speak, confirm
         self.allowed, self.system_extra = allowed, system_extra
+        self.source = "local"  # who is asking, for the audit log: local or phone
         self.tools = OLLAMA_TOOLS if allowed is None else [t for t in OLLAMA_TOOLS if t["function"]["name"] in allowed]
 
     def ask(self, text: str, on_sentence=None) -> str:
@@ -190,21 +191,21 @@ class Brain:
                     args = json.loads(args or "{}")
                 if self.allowed is not None and name not in self.allowed:
                     result = "That tool is not available here."
-                    audit.record(name, args, "blocked", result, tainted)
+                    audit.record(name, args, "blocked", result, tainted, self.source)
                 elif name == "look":
                     try:
                         images.append(capture(args.get("source", "screen")))
                         result = "Image captured; it is attached in the next message."
                     except Exception as e:
                         result = f"Capture failed: {e}"
-                    audit.record(name, args, audit.outcome_of(result), result, tainted)
+                    audit.record(name, args, audit.outcome_of(result), result, tainted, self.source)
                 elif tainted and (name in GUARDED_AFTER_UNTRUSTED or _clipboard_write(name, args)) and                         not self.confirm(f"That came from something I just read, not from you. "
                                          f"Should I {GUARDED_AFTER_UNTRUSTED.get(name, 'copy that')}?"):
                     result = "User declined."
-                    audit.record(name, args, "blocked", result, tainted)
+                    audit.record(name, args, "blocked", result, tainted, self.source)
                 else:
                     result = run_tool(name, args, self.speak, self.confirm)
-                    audit.record(name, args, audit.outcome_of(result), result, tainted)
+                    audit.record(name, args, audit.outcome_of(result), result, tainted, self.source)
                     if name in UNTRUSTED_SOURCES and not _clipboard_write(name, args):
                         tainted = True
                         result = mark_untrusted(name, result)
