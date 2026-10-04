@@ -57,12 +57,12 @@ def trim_history(history: list, max_msgs: int = 30, max_chars: int = 24000) -> l
     return history
 
 
-def _chat(messages, on_text=None):
+def _chat(messages, on_text=None, tools=None):
     """Stream one assistant turn from Ollama. Calls on_text(delta) as text arrives; returns the full message."""
     body = json.dumps({
         "model": C.MODEL,
         "messages": messages,
-        "tools": OLLAMA_TOOLS,
+        "tools": tools if tools is not None else OLLAMA_TOOLS,
         "stream": True,
         "keep_alive": "60m",  # keep the model loaded between requests
         "think": False,  # faster replies; she speaks short answers anyway
@@ -91,7 +91,7 @@ def _chat(messages, on_text=None):
 # calling any tool (a small model sometimes just says "done"), it is made to try again.
 _NEEDS_TOOL = re.compile(
     r"\b(remind|reminder|don'?t let me forget|remember|forget|copy|copied|clipboard|minimi[sz]e|maximi[sz]e|snap|"
-    r"volume|louder|quieter|timer|weather|temperature|search|look up|google|switch to)\b"
+    r"volume|louder|quieter|timer|weather|temperature|search|look up|google|switch to|research|look into|find out)\b"
     # bare action verbs only count as commands at the start of a sentence ("close chrome", not "close by")
     r"|(?:^|[.?!]\s+)(?:(?:please|can you|could you|will you)\s+)*(close|lock|open|cancel|pause|resume|mute|unmute)\b",
     re.I)
@@ -103,7 +103,7 @@ UNTRUSTED_SOURCES = {"web_search", "read_webpage", "read_file", "read_notes", "c
 # Once untrusted text has been read in a turn, these need an explicit yes before they run.
 GUARDED_AFTER_UNTRUSTED = {"remember": "save that to memory", "forget": "forget that", "open_url": "open that link",
                            "open_app": "open that app", "set_reminder": "set that reminder",
-                           "add_routine": "set that routine"}
+                           "add_routine": "set that routine", "start_task": "start that task"}
 
 
 def mark_untrusted(name: str, result: str) -> str:
@@ -138,9 +138,13 @@ class _Sentences:
 
 
 class Brain:
-    def __init__(self, speak, confirm):
+    def __init__(self, speak, confirm, allowed=None, system_extra=""):
+        """allowed: names of the only tools this Brain may call (None = all). Enforced when a call is made,
+        not just in the schema the model sees, because a small model can name a tool it was never offered."""
         self.history = []
         self.speak, self.confirm = speak, confirm
+        self.allowed, self.system_extra = allowed, system_extra
+        self.tools = OLLAMA_TOOLS if allowed is None else [t for t in OLLAMA_TOOLS if t["function"]["name"] in allowed]
 
     def ask(self, text: str, on_sentence=None) -> str:
         """Answer `text`. With on_sentence, each sentence is passed to it as soon as it is generated."""
@@ -156,8 +160,8 @@ class Brain:
             try:
                 now = datetime.datetime.now().strftime("%A %d %B %Y, %I:%M %p")
                 # memory goes before the date so the always-changing date stays the last part of the prompt
-                system = f"{C.SYSTEM_PROMPT}{memory.prompt_block()}\nCurrent local date and time: {now}."
-                reply = _chat([{"role": "system", "content": system}] + self.history + extra, stream)
+                system = f"{C.SYSTEM_PROMPT}{memory.prompt_block()}\nCurrent local date and time: {now}.{self.system_extra}"
+                reply = _chat([{"role": "system", "content": system}] + self.history + extra, stream, tools=self.tools)
                 if sentences and not guarded:
                     sentences.flush()
             except Exception as e:
@@ -184,7 +188,10 @@ class Brain:
                 name, args = fn["name"], fn.get("arguments") or {}
                 if isinstance(args, str):
                     args = json.loads(args or "{}")
-                if name == "look":
+                if self.allowed is not None and name not in self.allowed:
+                    result = "That tool is not available here."
+                    audit.record(name, args, "blocked", result, tainted)
+                elif name == "look":
                     try:
                         images.append(capture(args.get("source", "screen")))
                         result = "Image captured; it is attached in the next message."

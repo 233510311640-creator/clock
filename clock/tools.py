@@ -12,7 +12,7 @@ from typing import Literal, get_args, get_origin
 import psutil
 
 from . import config as C
-from . import clipboard, memory, reminders, routines, system_audio, web, windows
+from . import clipboard, memory, reminders, routines, system_audio, tasks, web, windows
 
 APPS = {  # allowlist: spoken name -> executable
     "notepad": "notepad.exe", "calculator": "calc.exe", "paint": "mspaint.exe",
@@ -227,6 +227,27 @@ def list_routines():
 @tool("Cancel a recurring routine by its id or a word from it (for example 'weather').")
 def cancel_routine(match: str):
     return routines.cancel(match)
+
+
+@tool("Start a longer research job in the background (web search, reading pages and files) and carry on talking. "
+      "She announces the result when it finishes. Use for questions that need several lookups, not quick facts.")
+def start_task(goal: str, speak):
+    return tasks.start(goal, speak)
+
+
+@tool("List background tasks and their status.")
+def list_tasks():
+    return tasks.listing()
+
+
+@tool("Get the result of a background task by its number or a word from its goal.")
+def task_result(match: str):
+    return tasks.result(match)
+
+
+@tool("Cancel a running background task by its number or a word from its goal.")
+def cancel_task(match: str):
+    return tasks.cancel(match)
 
 
 @tool("Save a lasting fact about the user (a preference, name, date, habit) to long-term memory.")

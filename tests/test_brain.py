@@ -118,3 +118,20 @@ def test_remember_after_web_read_runs_if_confirmed(monkeypatch):
 def test_remember_without_untrusted_read_is_not_prompted(monkeypatch):
     ran, asked, _ = _run(monkeypatch, [_call("remember", fact="x"), _a("done")], confirm_answer=False)
     assert ran == ["remember"] and asked == []
+
+
+def test_allowed_list_blocks_tools_outside_it(monkeypatch):
+    ran = []
+    it = iter([_call("remember", fact="x"), _call("web_search", query="q"), _a("done")])
+    monkeypatch.setattr(brain, "_chat", lambda *a, **k: next(it))
+    monkeypatch.setattr(brain, "run_tool", lambda name, args, *_: ran.append(name) or "ok")
+    b = brain.Brain(lambda t: None, lambda q: True, allowed={"web_search"})
+    b.ask("find out about it")
+    assert ran == ["web_search"]
+    assert any(m.get("content") == "That tool is not available here." for m in b.history)
+
+
+def test_allowed_list_limits_schema_sent_to_model():
+    b = brain.Brain(lambda t: None, lambda q: True, allowed={"web_search", "weather"})
+    assert {t["function"]["name"] for t in b.tools} == {"web_search", "weather"}
+    assert len(brain.Brain(lambda t: None, lambda q: True).tools) == len(brain.OLLAMA_TOOLS)
