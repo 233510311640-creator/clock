@@ -163,3 +163,15 @@ def test_edge_engine_never_calls_eleven(monkeypatch, tmp_path):
     monkeypatch.setattr(tts.edge_tts, "Communicate", FakeComm)
     tts._synthesize("Hello", str(tmp_path / "a.mp3"))
     assert spoken == ["Hello"]
+
+
+def test_key_id_instead_of_secret_switches_off_with_clear_reason(monkeypatch, tmp_path, capsys):
+    body = b'{"detail":{"code":"invalid_api_key","status":"api_key_id_used_as_api_key"}}'
+
+    def fake(req, timeout):
+        raise urllib.error.HTTPError("u", 400, "bad", {}, io.BytesIO(body))
+    monkeypatch.setattr(tts_eleven.urllib.request, "urlopen", fake)
+    with pytest.raises(tts_eleven.ElevenError):
+        tts_eleven.synthesize("hi", str(tmp_path / "a.mp3"))
+    assert tts_eleven.usable("hi") is False
+    assert "sk_" in capsys.readouterr().out

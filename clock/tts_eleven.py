@@ -70,6 +70,13 @@ def _disable(reason: str):
         print(f"(ElevenLabs off for this session: {reason}. Using edge-tts.)")
 
 
+def _invalid_key(e: urllib.error.HTTPError) -> bool:
+    try:
+        return "invalid_api_key" in e.read(2000).decode("utf-8", "replace")
+    except Exception:
+        return False
+
+
 def synthesize(text: str, path: str):
     """Write mp3 speech for `text` to `path`. Raises ElevenError on any failure (the key is never in the message)."""
     global _fails
@@ -85,6 +92,8 @@ def synthesize(text: str, path: str):
         code = e.code
         if code in (401, 403):
             _disable("the API key was rejected")
+        elif code == 400 and _invalid_key(e):
+            _disable("that is not a valid API key (use the secret key that starts with sk_, not the key ID)")
         elif code == 402:
             _disable("no credits left")
         elif code == 429:
@@ -117,6 +126,8 @@ def balance() -> str:
     except urllib.error.HTTPError as e:
         if e.code in (401, 403):
             return "key rejected or missing the user_read permission"
+        if e.code == 400 and _invalid_key(e):
+            return "not a valid API key: use the secret key starting with sk_, not the key ID"
         return f"HTTP {e.code}"
     except Exception as e:
         return type(e).__name__

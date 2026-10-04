@@ -42,6 +42,8 @@ def _eleven():
         return True, "off (CLOCK_TTS=edge); edge-tts is the voice"
     if not C.ELEVEN_KEY:
         return False, "CLOCK_TTS=eleven but no ELEVENLABS_API_KEY; she will use edge-tts"
+    if not C.ELEVEN_KEY.startswith("sk_"):
+        return False, "the key does not start with sk_: copy the secret key (shown once when created), not the key ID"
     left = C.ELEVEN_BUDGET - tts_eleven.used()
     return True, (f"model {C.ELEVEN_MODEL}; {max(left, 0)} of {C.ELEVEN_BUDGET} budgeted characters left this month; "
                   f"account: {tts_eleven.balance()}")
