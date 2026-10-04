@@ -41,6 +41,12 @@ By default every utterance is transcribed and matched against "hey Clock". With 
 instead and Whisper runs only after it fires. `CLOCK_WAKE_ENGINE` = `auto` | `oww` | `whisper`, `CLOCK_WAKE_MODEL`,
 `CLOCK_WAKE_THRESHOLD`, `CLOCK_WAKE_VAD`.
 
+## Speech engine
+`CLOCK_STT` = `auto` (default) | `phonon` | `whisper`. With `pip install -r requirements-phonon.txt` Clock uses
+[Phonon-2](https://github.com/fermionresearch/phonon) (Fermion Research, weights CC-BY-4.0) for speech to text:
+about 40 ms per command instead of about 900 ms with Whisper, same accuracy on our test clips. Without it, or if it errors, Whisper is used.
+To compare engines on your own voice: `python scripts/stt_bench.py record` then `run` (needs the engines installed).
+
 ## Tests
     pip install -r requirements-dev.txt
     python -m pytest

@@ -1,0 +1,8 @@
+# Optional: Phonon-2 speech-to-text (CC-BY-4.0 weights, Fermion Research). Install CPU torch first on Windows:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# clock/stt.py uses fermion's internal loader, so keep the version pinned.
+fermion-research==0.2.7
+safetensors
+soundfile
+scipy
+zstandard

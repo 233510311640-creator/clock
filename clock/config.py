@@ -33,6 +33,9 @@ ADDRESS = f", {USER_NAME}" if USER_NAME else ""  # for spoken lines like "See yo
 WAKE_WORDS = ("clock", "hey clock")
 VOICE = _env("VOICE", "en-GB-RyanNeural")
 WHISPER_MODEL = _env("WHISPER", "small.en")
+# Speech to text. "auto": Phonon-2 if fermion-research is installed (about 20x faster, same accuracy on our clips), else Whisper.
+# "phonon" tries Phonon first too; "whisper" never loads Phonon. Any Phonon error falls back to Whisper.
+STT_ENGINE = _env("STT", "auto").lower()
 SAMPLE_RATE = 16000
 SILENCE_SECONDS = 1.0  # quiet that ends a normal utterance; short enough to feel snappy, long enough for a breath
 FOLLOWUP_SILENCE = 1.8  # after her "Yes?" or an unfinished sentence: people pause while they think
