@@ -17,6 +17,7 @@ Say "Clock, goodbye" to quit.
 - **Answer questions from the web** (`web_search`, `read_webpage`) and give the **weather** (default city: `CLOCK_CITY`, or any city you name).
 - **Volume and media**: "turn it down", "set volume to 40", "mute", "pause", "next song".
 - **Reminders and timers** that survive restarts: "remind me tomorrow at 8 to submit the assignment", "what reminders do I have", "cancel the stretch reminder". Anything that came due while she was off is announced when she starts.
+- **Routines**: "every weekday at 8 tell me the weather and my reminders", "what routines do I have", "cancel the weather routine". She speaks fixed parts (your line, time, weather, today's reminders) at that time; a routine missed by under 2 hours is spoken late, older ones are skipped. Stored in `~/clock_routines.json`.
 - **Memory**: "remember my sister's birthday is 14 March", "forget the tea thing". Facts live in `~/edith_memory.json` and she sees them on every turn.
 - **Clipboard**: "summarise what I copied", "copy 'see you at five'".
 - **Windows**: "switch to Brave", "minimize Discord", "snap Notepad left", "close Notepad" (asks first), "minimize everything", "lock the PC".

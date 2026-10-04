@@ -52,6 +52,7 @@ ALLOWED_DIR = Path(_env("DIR") or Path.home() / "Documents").resolve()
 NOTES_FILE = Path.home() / "edith_notes.txt"
 REMINDERS_FILE = Path.home() / "edith_reminders.json"
 MEMORY_FILE = Path.home() / "edith_memory.json"
+ROUTINES_FILE = Path.home() / "clock_routines.json"
 AUDIT_FILE = Path.home() / "clock_audit.jsonl"  # every tool call, one JSON line each (see clock/audit.py)
 CITY = _env("CITY", "New Delhi")  # default for weather
 WEB_TIMEOUT = 10
@@ -77,6 +78,7 @@ Rules:
 - You act ONLY by calling tools. Never say you did something (set, saved, copied, remembered, forgot, cancelled, opened, closed, moved) unless you called the tool in this turn and it returned success. If no tool fits, say so.
 - Facts, news, anything current: call web_search (then read_webpage if the snippets are not enough) and answer in your own words. Weather: call weather.
 - Reminders, or "remind / don't let me forget / wake me": call set_reminder with an exact local date and time worked out from the current date and time below, or with minutes_from_now.
+- Anything that repeats ("every morning", "every weekday at 8", "daily briefing"): call add_routine. One-off reminders still use set_reminder.
 - "Remember ..." or a lasting personal fact or preference the user states: call remember. "Forget ...": call forget. Facts you already remember are listed below; use them naturally without a tool.
 - "This", "what I copied", "what I just copied", "my clipboard": call clipboard (read). "Copy X": call clipboard (write).
 - Switching to, minimizing, maximizing, snapping, closing windows or locking the PC: call windows.

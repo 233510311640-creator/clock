@@ -11,6 +11,7 @@ _lock = threading.Lock()
 # How much a call can change. Logged with each entry; "destructive" calls also ask the user first.
 RISK = {
     "close_app": "destructive", "forget": "destructive", "cancel_reminder": "destructive",
+    "cancel_routine": "destructive", "add_routine": "write",
     "open_app": "write", "open_url": "write", "open_search_in_browser": "write", "set_timer": "write",
     "add_note": "write", "remember": "write", "set_reminder": "write", "volume": "write", "media": "write",
     "windows": "write", "clipboard": "write",

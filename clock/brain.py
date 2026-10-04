@@ -102,7 +102,8 @@ _NUDGE = ("You answered without calling a tool, so nothing was done. Call the ri
 UNTRUSTED_SOURCES = {"web_search", "read_webpage", "read_file", "read_notes", "clipboard"}
 # Once untrusted text has been read in a turn, these need an explicit yes before they run.
 GUARDED_AFTER_UNTRUSTED = {"remember": "save that to memory", "forget": "forget that", "open_url": "open that link",
-                           "open_app": "open that app", "set_reminder": "set that reminder"}
+                           "open_app": "open that app", "set_reminder": "set that reminder",
+                           "add_routine": "set that routine"}
 
 
 def mark_untrusted(name: str, result: str) -> str:

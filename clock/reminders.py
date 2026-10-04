@@ -49,6 +49,12 @@ def listing() -> str:
                      for i in items)
 
 
+def pending() -> list:
+    """All pending reminders and timers, as stored dicts (id, due ISO string, text, kind)."""
+    with _lock:
+        return _load()
+
+
 def cancel(key: str) -> str:
     """Cancel by id, or by a word from the text."""
     key = key.lower().strip()

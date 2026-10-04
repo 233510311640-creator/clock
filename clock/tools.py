@@ -12,7 +12,7 @@ from typing import Literal, get_args, get_origin
 import psutil
 
 from . import config as C
-from . import clipboard, memory, reminders, system_audio, web, windows
+from . import clipboard, memory, reminders, routines, system_audio, web, windows
 
 APPS = {  # allowlist: spoken name -> executable
     "notepad": "notepad.exe", "calculator": "calc.exe", "paint": "mspaint.exe",
@@ -207,6 +207,26 @@ def list_reminders():
 @tool("Cancel a reminder or timer by its id or a word from its text.")
 def cancel_reminder(match: str):
     return reminders.cancel(match)
+
+
+@tool("Set a recurring spoken briefing. `at` is 24-hour 'HH:MM'. `days` is daily, weekdays, weekends or a list "
+      "like 'mon,wed,fri'. `include` is any of: time, weather, reminders (comma-separated). `text` is an optional "
+      "line to say first. Example: every weekday at 8: at='08:00', days='weekdays', include='weather,reminders'.")
+def add_routine(at: str, days: str = "daily", include: str = "", text: str = ""):
+    try:
+        return routines.add(at, days, include, text)
+    except ValueError as e:
+        return f"Couldn't set that routine: {e}"
+
+
+@tool("List recurring routines.")
+def list_routines():
+    return routines.listing()
+
+
+@tool("Cancel a recurring routine by its id or a word from it (for example 'weather').")
+def cancel_routine(match: str):
+    return routines.cancel(match)
 
 
 @tool("Save a lasting fact about the user (a preference, name, date, habit) to long-term memory.")

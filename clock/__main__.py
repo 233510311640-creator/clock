@@ -5,7 +5,7 @@ import threading
 import time
 
 from . import config as C
-from . import reminders, settings
+from . import reminders, routines, settings
 from .brain import Brain, check_ollama
 
 
@@ -71,6 +71,7 @@ def main():
 
         brain = Brain(speak, confirm)
         reminders.start(speak)
+        routines.start(speak)
         print("Clock online (text mode). Ctrl+C to quit.")
         while True:
             try:
@@ -181,6 +182,7 @@ def main():
         speak(f"Clock online. Say my name when you need me{C.ADDRESS}." if not problem else
               f"Clock online, but there's a problem{C.ADDRESS}. {problem.split('. Run')[0]}.")
         reminders.start(speak)
+        routines.start(speak)
         apply_settings()
         convo.take()  # drop anything typed while she was off
         threading.Thread(target=watch_inbox, daemon=True, name="inbox").start()
