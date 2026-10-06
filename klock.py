@@ -2,7 +2,8 @@
 
     python klock.py start | stop | status | log | mic | wake-test | panel | tray | install | uninstall
 
-`panel` opens the control window (also what clicking the tray icon does). `tray` shows a tray icon where you can start or pause Clock. `install` puts that tray icon in your
+`panel` opens the control window (tray menu > Open panel). `tray` shows a tray icon: red = off, green = on, amber = muted.
+Left click starts Clock, or mutes / unmutes her while she runs. `install` puts that tray icon in your
 Startup folder so it appears at every login (Clock waits until you start her there); `uninstall` removes it.
 """
 import os

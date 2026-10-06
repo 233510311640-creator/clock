@@ -7,11 +7,11 @@ import json
 from . import config as C
 
 SETTINGS_FILE = C.ROOT / "klock.settings.json"
-KEYS = ("hud", "voice", "chime")
+KEYS = ("hud", "voice", "chime", "listening")
 
 
 def defaults():
-    return {"hud": C.HUD, "voice": True, "chime": C.CHIME}
+    return {"hud": C.HUD, "voice": True, "chime": C.CHIME, "listening": True}
 
 
 def load():

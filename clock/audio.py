@@ -97,6 +97,8 @@ def record_utterance(max_wait=None, on_mic=None, silence=None, mic=None, initial
     dt = block / C.SAMPLE_RATE
     pre = collections.deque(maxlen=max(1, round(C.PRE_ROLL_SECONDS / dt)))
     chunks, started, silent, waited = [], False, 0.0, 0.0
+    # seconds above the energy threshold; a click or cough is too short to be speech. A woken capture is speech already.
+    voiced = C.MIN_SPEECH_SECONDS if initial else 0.0
     watch = _MicWatch(on_mic)
     if initial:
         started = True
@@ -121,18 +123,20 @@ def record_utterance(max_wait=None, on_mic=None, silence=None, mic=None, initial
                     return None
                 if loud:
                     started = True
+                    voiced += dt
                     chunks.extend(pre)
                     chunks.append(data)
                 else:
                     pre.append(data)
                 continue
             chunks.append(data)
+            voiced += dt if loud else 0.0
             silent = 0.0 if loud else silent + dt
             total = len(chunks) * dt
             if silent >= silence or total >= C.MAX_UTTERANCE_SECONDS:
                 break
     audio = np.concatenate(chunks)
-    return audio if len(audio) > C.SAMPLE_RATE * 0.3 else None
+    return audio if len(audio) > C.SAMPLE_RATE * 0.3 and voiced >= C.MIN_SPEECH_SECONDS else None
 
 
 def wait_for_wake(mic, gate, on_mic=None, busy=None, keep=1.2, settle=0.5):

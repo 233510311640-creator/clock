@@ -91,9 +91,11 @@ def _chat(messages, on_text=None, tools=None):
 # calling any tool (a small model sometimes just says "done"), it is made to try again.
 _NEEDS_TOOL = re.compile(
     r"\b(remind|reminder|don'?t let me forget|remember|forget|copy|copied|clipboard|minimi[sz]e|maximi[sz]e|snap|"
-    r"volume|louder|quieter|timer|weather|temperature|search|look up|google|switch to|research|look into|find out)\b"
+    r"volume|louder|quieter|timer|weather|temperature|search|look up|google|switch to|research|look into|find out|"
+    # she cannot see without the look tool: "what's on my screen", "can you see my screen", "what am I holding"
+    r"(?:on|at|see|read|check|describe)\s+(?:my|the)\s+screen|webcam|what (?:can|do) you see|what am i holding|ip address|powershell|(?:type|press|click|scroll)\s+(?:in|out|on|up|down|the|ctrl|alt|enter|that)|double.click|command prompt|installed (?:apps|programs))\b"
     # bare action verbs only count as commands at the start of a sentence ("close chrome", not "close by")
-    r"|(?:^|[.?!]\s+)(?:(?:please|can you|could you|will you)\s+)*(close|lock|open|cancel|pause|resume|mute|unmute)\b",
+    r"|(?:^|[.?!]\s+)(?:(?:please|can you|could you|will you)\s+)*(close|lock|open|cancel|pause|resume|mute|unmute|type|press|click|scroll)\b",
     re.I)
 _NUDGE = ("You answered without calling a tool, so nothing was done. Call the right tool now, "
           "then reply briefly based on its result.")
@@ -103,7 +105,11 @@ UNTRUSTED_SOURCES = {"web_search", "read_webpage", "read_file", "read_notes", "c
 # Once untrusted text has been read in a turn, these need an explicit yes before they run.
 GUARDED_AFTER_UNTRUSTED = {"remember": "save that to memory", "forget": "forget that", "open_url": "open that link",
                            "open_app": "open that app", "set_reminder": "set that reminder",
-                           "add_routine": "set that routine", "start_task": "start that task"}
+                           "add_routine": "set that routine", "start_task": "start that task",
+                           "write_file": "write that file", "make_folder": "make that folder", "move_file": "move that file",
+                           "copy_file": "copy that file", "delete_file": "delete that file", "run_command": "run that command",
+                           "type_text": "type that", "press_keys": "press those keys", "mouse_click": "click there",
+                           "scroll": "scroll"}
 
 
 def mark_untrusted(name: str, result: str) -> str:

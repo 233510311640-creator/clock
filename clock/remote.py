@@ -23,7 +23,7 @@ CHUNK = 3900  # Telegram's limit is 4096 characters per message
 
 # What a phone message may do. Nothing here touches other apps, the clipboard, the screen or the webcam.
 SAFE_TOOLS = {
-    "get_time", "system_info", "weather", "web_search", "read_webpage", "read_file", "search_files", "read_notes",
+    "get_time", "system_info", "weather", "web_search", "read_webpage", "read_file", "search_files", "list_folder", "read_notes",
     "add_note", "set_timer", "set_reminder", "list_reminders", "cancel_reminder", "remember", "forget",
     "add_routine", "list_routines", "cancel_routine", "start_task", "list_tasks", "task_result", "cancel_task",
     "volume", "media", "recent_actions",

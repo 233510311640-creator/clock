@@ -29,8 +29,8 @@ def strip_wake(text: str):
 
 # A command that ends on one of these is a sentence she cut off because you paused ("can you ...", "open ...").
 _UNFINISHED = re.compile(
-    r"\b(?:can|could|would|will|you|please|open|launch|start|run|close|to|the|a|an|and|my|for|in|on|with|of|then|"
-    r"set|search|play|hey|hi|hello|clock)\W*$", re.I)
+    r"(?:\b(?:can|could|would|will|you|please|open|launch|start|run|close|to|the|a|an|and|my|for|in|on|with|of|then|"
+    r"set|search|play|hey|hi|hello|clock)\W*|\w[-–—…]\s*|\.\.\.\s*)$", re.I)
 MAX_CONTINUATIONS = 2
 
 
@@ -146,15 +146,18 @@ def main():
         tray.status(text)
         hud.status(text)
 
+    warned = [False]  # a headset that keeps dropping out would make her nag all day: speak once, then the tray shows it
+
     def on_mic(alive):
         if alive:
             print("(mic signal is back)")
-            set_status("listening")
-            speak(f"I can hear you again{C.ADDRESS}.")
+            set_status(idle_status())
         else:
             print("(mic is silent: muted or blocked)")
             set_status("mic silent - muted?")
-            speak(f"I can't hear anything{C.ADDRESS}. Your microphone looks off, muted or blocked. Is the headset on?")
+            if not warned[0]:
+                warned[0] = True
+                speak(f"I can't hear anything{C.ADDRESS}. Your microphone looks off, muted or blocked. Is the headset on?")
     busy = threading.Lock()  # one exchange at a time, whether spoken or typed in the panel
 
     def respond(cmd):
@@ -176,17 +179,25 @@ def main():
             convo.add("clock", " ".join(said))
             print(f"[thought in {time.perf_counter() - t0:.1f}s]")
             spk.wait()
-            set_status("listening")
+            set_status(idle_status())
 
     applied = [None]
+    muted = [False]  # the tray / panel "listening" switch: she keeps running but ignores your voice
+
+    def idle_status():
+        return "muted" if muted[0] else "listening"
 
     def apply_settings():
         cfg = settings.load()
         if cfg != applied[0]:
+            was_muted = muted[0]
             applied[0] = cfg
             hud.visible = cfg["hud"]
             spk.mute = args.mute or not cfg["voice"]
             C.CHIME = cfg["chime"]
+            muted[0] = not cfg["listening"]
+            if muted[0] != was_muted and not busy.locked():
+                set_status(idle_status())
 
     def watch_inbox():  # also picks up settings changed in the panel
         while True:
@@ -208,16 +219,17 @@ def main():
         announce = start_remote(busy, speak)
         reminders.start(announce)
         routines.start(announce)
+        settings.save({"listening": True})  # a mute never survives a restart
         apply_settings()
         convo.take()  # drop anything typed while she was off
         threading.Thread(target=watch_inbox, daemon=True, name="inbox").start()
         if mic:
             mic.open()
         while True:
-            set_status("listening")
+            set_status(idle_status())
             try:
                 if gate:
-                    woke = wait_for_wake(mic, gate, on_mic=on_mic, busy=spk.busy)
+                    woke = wait_for_wake(mic, gate, on_mic=on_mic, busy=lambda: muted[0] or spk.busy())
                     set_status("hearing you")
                     print("(wake word heard)")
                     # the wake word and anything said right after it are in `woke`; carry on until you stop
@@ -232,7 +244,7 @@ def main():
                     with contextlib.suppress(Exception):
                         mic.open()
                 continue
-            if audio is None:
+            if audio is None or muted[0]:  # muted: drop what she recorded (the Whisper path records before it knows)
                 continue
             set_status("hearing you")
             t0 = time.perf_counter()

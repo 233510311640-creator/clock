@@ -12,3 +12,5 @@ pycaw
 comtypes
 pywebview
 openwakeword
+python-docx
+pypdf

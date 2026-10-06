@@ -11,8 +11,15 @@ def test_needs_tool_matches_commands():
         assert _NEEDS_TOOL.search(text), text
 
 
+def test_needs_tool_matches_seeing_requests():
+    for text in ["what's on my screen", "Can you see my screen?", "read the screen", "what can you see",
+                 "what am I holding", "look at my webcam"]:
+        assert _NEEDS_TOOL.search(text), text
+
+
 def test_needs_tool_ignores_chat():
-    for text in ["tell me a joke", "who wrote Hamlet", "is the shop close by", "how are you"]:
+    for text in ["tell me a joke", "who wrote Hamlet", "is the shop close by", "how are you",
+                 "I like the screen on this phone", "you see, it was fine"]:
         assert not _NEEDS_TOOL.search(text), text
 
 

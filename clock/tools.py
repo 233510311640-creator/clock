@@ -1,4 +1,5 @@
 import datetime
+import difflib
 import inspect
 import json
 import os
@@ -6,26 +7,19 @@ import shutil
 import subprocess
 import urllib.parse
 import webbrowser
-from pathlib import Path
 from typing import Literal, get_args, get_origin
 
 import psutil
 
 from . import config as C
-from . import clipboard, memory, reminders, routines, system_audio, tasks, web, windows
+from . import clipboard, files, inputs, memory, shell, reminders, routines, system_audio, tasks, web, windows
 
 APPS = {  # allowlist: spoken name -> executable
     "notepad": "notepad.exe", "calculator": "calc.exe", "paint": "mspaint.exe",
     "explorer": "explorer.exe", "task manager": "taskmgr.exe", "settings": "ms-settings:",
-    "chrome": "chrome.exe", "edge": "msedge.exe", "vscode": "code", "terminal": "wt.exe",
+    "chrome": "chrome.exe", "brave": "brave.exe", "edge": "msedge.exe", "vscode": "code", "terminal": "wt.exe",
     "word": "winword.exe", "excel": "excel.exe", "powerpoint": "powerpnt.exe",
 }
-
-
-def _inside_allowed(p: str):
-    path = Path(p) if os.path.isabs(p) else C.ALLOWED_DIR / p
-    path = path.resolve()
-    return path if C.ALLOWED_DIR in path.parents or path == C.ALLOWED_DIR else None
 
 
 _JSON_TYPES = {str: "string", int: "integer"}
@@ -62,11 +56,22 @@ def get_time():
     return datetime.datetime.now().strftime("%A %d %B %Y, %I:%M %p")
 
 
+def resolve_app(name: str):
+    """Spoken app name -> key in APPS. Accepts a near miss ("wave" for brave): speech-to-text garbles app names."""
+    key = name.strip().lower()
+    if key in APPS:
+        return key
+    close = difflib.get_close_matches(key, list(APPS), n=1, cutoff=0.65)
+    return close[0] if close else None
+
+
 @tool(f"Open an application. Allowed: {', '.join(APPS)}.")
 def open_app(name: str):
-    exe = APPS.get(name.lower())
+    key = resolve_app(name)
+    exe = APPS.get(key or "")
     if not exe:
         return f"'{name}' is not in the allowed apps."
+    name = key
     if exe.endswith(":"):
         os.startfile(exe)
     elif shutil.which(exe):
@@ -78,9 +83,11 @@ def open_app(name: str):
 
 @tool("Close an allowed application by name (asks user to confirm).")
 def close_app(name: str, confirm):
-    exe = APPS.get(name.lower())
+    key = resolve_app(name)
+    exe = APPS.get(key or "")
     if not exe or exe.endswith(":"):
         return "Not an allowed app."
+    name = key  # confirm the app she will really close, not the garbled word she heard
     if not confirm(f"Close {name}?"):
         return "User declined."
     n = 0
@@ -140,22 +147,75 @@ def read_notes():
     return C.NOTES_FILE.read_text(encoding="utf-8")[-3000:] if C.NOTES_FILE.exists() else "No notes yet."
 
 
-@tool(f"Find files by name fragment under {C.ALLOWED_DIR}.")
+_FOLDERS = ", ".join(r.name for r in files.roots())
+
+
+@tool(f"Find files by name fragment in the approved folders ({_FOLDERS}).")
 def search_files(query: str):
-    q, hits = query.lower(), []
-    for root, _, files in os.walk(C.ALLOWED_DIR):
-        hits += [os.path.join(root, f) for f in files if q in f.lower()]
-        if len(hits) >= 10:
-            break
-    return "\n".join(hits[:10]) or "No matches."
+    return files.search(query)
 
 
-@tool(f"Read a text file (first 4000 chars) inside {C.ALLOWED_DIR}.")
-def read_file(path: str):
-    p = _inside_allowed(path)
-    if not p or not p.is_file():
-        return "File not found or outside the allowed folder."
-    return p.read_text(encoding="utf-8", errors="replace")[:4000]
+@tool(f"Read a text, Word (.docx) or PDF file in the approved folders ({_FOLDERS}), 4000 characters at a time: "
+      f"for a long file call again with `offset`. Relative paths start in {C.ALLOWED_DIR.name}.")
+def read_file(path: str, offset: int = 0):
+    return files.read(path, offset)
+
+
+@tool("List a folder's contents. An empty path lists the approved folders.")
+def list_folder(path: str = ""):
+    return files.list_folder(path)
+
+
+@tool("Write a text file in the approved folders. mode: create (new file only), append, or overwrite (asks to confirm).")
+def write_file(path: str, text: str, mode: Literal["create", "append", "overwrite"], confirm):
+    return files.write(path, text, mode, confirm)
+
+
+@tool("Create a folder in the approved folders.")
+def make_folder(path: str):
+    return files.make_folder(path)
+
+
+@tool("Move or rename a file or folder inside the approved folders (asks to confirm before replacing anything).")
+def move_file(src: str, dst: str, confirm):
+    return files.move(src, dst, confirm)
+
+
+@tool("Copy one file inside the approved folders (asks to confirm before replacing anything).")
+def copy_file(src: str, dst: str, confirm):
+    return files.copy(src, dst, confirm)
+
+
+@tool("Delete one file: it goes to the Recycle Bin, and she always asks to confirm first.")
+def delete_file(path: str, confirm):
+    return files.delete(path, confirm)
+
+
+@tool(f"Run a PowerShell command in {C.ALLOWED_DIR.name}. Look-only commands (Get-Process, ipconfig, ...) run at once; "
+      "anything else is read back and she asks first.")
+def run_command(command: str, confirm):
+    return shell.run(command, confirm)
+
+
+@tool("Type text into the window that is in front (focus the right window first). Never type passwords. She asks first.")
+def type_text(text: str, confirm):
+    return inputs.type_text(text, confirm)
+
+
+@tool("Press a key or combination in the front window, for example ctrl+c, alt+tab, enter, f5, win+d. She asks first.")
+def press_keys(keys: str, confirm):
+    return inputs.press_keys(keys, confirm)
+
+
+@tool("Click the mouse at screen pixel x,y (button left, right or middle). She asks first. Prefer keys and window "
+      "control; clicking needs exact coordinates.")
+def mouse_click(x: int, y: int, confirm, button: Literal["left", "right", "middle"] = "left", double: str = ""):
+    return inputs.click(x, y, confirm, button, double.lower() in ("true", "yes", "1", "double"))
+
+
+@tool("Scroll the window under the mouse up or down by a number of notches (default 3). She asks first.")
+def scroll(direction: Literal["up", "down"], confirm, amount: int = 3):
+    return inputs.scroll(direction, amount, confirm)
 
 
 @tool("Show a Google search in the browser, only when the user asks to see results on screen.")

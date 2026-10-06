@@ -56,7 +56,45 @@ def save(name, accent, stop=False):
     img.save(OUT / name.replace(".ico", ".png"))
 
 
+TRAY = {  # state -> (colour, glyph); bold shapes so each state still reads at 16px
+    "off": ((255, 70, 80), "stop"),
+    "waiting": ((40, 220, 110), "ring"),
+    "active": ((40, 220, 110), "disc"),
+    "muted": ((255, 176, 32), "pause"),
+    "nomic": ((140, 150, 160), "slash"),
+}
+
+
+def render_tray(accent, glyph):
+    img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    glow = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    g = ImageDraw.Draw(glow)
+    c, r = S // 2, 400
+    box = [c - r, c - r, c + r, c + r]
+    if glyph == "ring":
+        g.ellipse(box, outline=accent + (255,), width=150)
+    else:
+        g.ellipse(box, fill=accent + (255,))
+    dark = (12, 18, 28, 255)
+    if glyph == "stop":
+        g.rounded_rectangle([c - 170, c - 170, c + 170, c + 170], radius=40, fill=(255, 255, 255, 255))
+    elif glyph == "pause":
+        for x in (c - 170, c + 40):
+            g.rounded_rectangle([x, c - 190, x + 130, c + 190], radius=30, fill=dark)
+    elif glyph == "slash":
+        g.line([(c - 250, c + 250), (c + 250, c - 250)], fill=dark, width=120)
+    halo = glow.filter(ImageFilter.GaussianBlur(40))
+    return Image.alpha_composite(Image.alpha_composite(img, halo), glow)
+
+
+def save_tray():
+    OUT.mkdir(exist_ok=True)
+    for name, (accent, glyph) in TRAY.items():
+        render_tray(accent, glyph).resize((64, 64), Image.LANCZOS).save(OUT / f"tray_{name}.png")
+
+
 if __name__ == "__main__":
     save("klock.ico", (0, 200, 255))
     save("klock_stop.ico", (255, 70, 80), stop=True)
+    save_tray()
     print("icons written to", OUT)

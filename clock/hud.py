@@ -11,7 +11,7 @@ from . import config as C
 
 BG, FG, DIM, ACCENT = "#0b1320", "#d8f3ff", "#6f8ea3", "#35d0ff"
 # Listening-type states stay in the tray only; the HUD only shows while she is hearing, thinking or speaking.
-TRAY_ONLY = ("listening", "loading", "waiting for your request", "mic")
+TRAY_ONLY = ("listening", "loading", "waiting for your request", "mic", "muted")
 POLL_MS = 100
 WIDTH = 360
 

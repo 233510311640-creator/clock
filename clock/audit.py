@@ -4,6 +4,7 @@ import json
 import threading
 
 from . import config as C
+from . import shell
 
 MAX_BYTES = 1_000_000  # past this the file is rotated to .1, so the log cannot grow without bound
 _lock = threading.Lock()
@@ -15,10 +16,14 @@ RISK = {
     "open_app": "write", "open_url": "write", "open_search_in_browser": "write", "set_timer": "write",
     "add_note": "write", "remember": "write", "set_reminder": "write", "volume": "write", "media": "write",
     "windows": "write", "clipboard": "write",
+    "write_file": "write", "make_folder": "write", "move_file": "write", "copy_file": "write", "delete_file": "destructive",
+    "type_text": "write", "press_keys": "write", "mouse_click": "write", "scroll": "write",
 }
 
 
 def risk(name: str, args: dict = None) -> str:
+    if name == "run_command":
+        return "read" if shell.is_safe((args or {}).get("command", "")) else "write"
     if name == "clipboard" and (args or {}).get("action") != "write":
         return "read"
     return RISK.get(name, "read")
