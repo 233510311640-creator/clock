@@ -6,6 +6,7 @@ import urllib.request
 
 from . import audit
 from . import config as C
+from . import fastpath
 from . import memory
 from .tools import TOOLS, run_tool
 from .vision import capture
@@ -155,6 +156,13 @@ class Brain:
 
     def ask(self, text: str, on_sentence=None) -> str:
         """Answer `text`. With on_sentence, each sentence is passed to it as soon as it is generated."""
+        quick = None if self.allowed is not None else fastpath.try_fast(text, self.speak, self.confirm, self.source)
+        if quick:  # simple command, handled without the model
+            if on_sentence:
+                on_sentence(quick)
+            self.history += [{"role": "user", "content": text}, {"role": "assistant", "content": quick}]
+            self.history = trim_history(self.history)
+            return quick
         sentences = _Sentences(on_sentence) if on_sentence else None
         self.history.append({"role": "user", "content": text})
         reply = {"content": ""}
