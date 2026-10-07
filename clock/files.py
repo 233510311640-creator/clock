@@ -40,18 +40,29 @@ def resolve(p: str):
     return cand if any(cand == r or cand.is_relative_to(r) for r in roots()) else None
 
 
+def _rows(p, limit: int) -> list:
+    entries = sorted(p.iterdir(), key=lambda e: (not e.is_dir(), e.name.lower()))
+    rows = [f"{e.name}/" if e.is_dir() else f"{e.name} ({e.stat().st_size} bytes)" for e in entries[:limit]]
+    if len(entries) > limit:
+        rows.append(f"...and {len(entries) - limit} more")
+    return rows
+
+
 def list_folder(path: str = "") -> str:
-    if not path.strip():
-        return "Approved folders:\n" + "\n".join(str(r) for r in roots())
+    if not path.strip():  # no folder named: show what is inside each approved folder, not just their names
+        parts = []
+        for r in roots():
+            try:
+                parts.append(r.name + ":\n" + ("\n".join(_rows(r, 15)) or "(empty)"))
+            except OSError:
+                parts.append(f"{r.name}: (unreadable)")
+        return "\n\n".join(parts)
     p = resolve(path)
     if not p:
         return OUTSIDE
     if not p.is_dir():
         return "That folder doesn't exist."
-    rows = []
-    for e in sorted(p.iterdir(), key=lambda e: (not e.is_dir(), e.name.lower()))[:LIST_LIMIT]:
-        rows.append(f"{e.name}/" if e.is_dir() else f"{e.name} ({e.stat().st_size} bytes)")
-    return "\n".join(rows) or "Empty folder."
+    return "\n".join(_rows(p, LIST_LIMIT)) or "Empty folder."
 
 
 def search(query: str) -> str:

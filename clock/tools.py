@@ -161,7 +161,7 @@ def read_file(path: str, offset: int = 0):
     return files.read(path, offset)
 
 
-@tool("List a folder's contents. An empty path lists the approved folders.")
+@tool("List a folder's contents. An empty path lists what is inside every approved folder.")
 def list_folder(path: str = ""):
     return files.list_folder(path)
 
